@@ -10,6 +10,9 @@ public class Intake implements Subsystem {
     public void On(){
         intakeMotor.setPower(1);
     }
+    public void rapidFire(){
+        intakeMotor.setPower(1);
+    }
     public void Off(){
         intakeMotor.setPower(0);
     }
