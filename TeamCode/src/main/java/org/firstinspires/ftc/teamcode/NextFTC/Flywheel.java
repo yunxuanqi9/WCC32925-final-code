@@ -3,17 +3,13 @@ package org.firstinspires.ftc.teamcode.NextFTC;
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
-import com.qualcomm.robotcore.robot.Robot;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.seattlesolvers.solverslib.controller.PController;
-import com.seattlesolvers.solverslib.controller.PIDFController;
 import com.seattlesolvers.solverslib.util.InterpLUT;
-import com.seattlesolvers.solverslib.util.LUT;
 
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.control.KineticState;
 import dev.nextftc.core.subsystems.Subsystem;
-import dev.nextftc.hardware.impl.CRServoEx;
 import dev.nextftc.hardware.impl.MotorEx;
 import dev.nextftc.hardware.impl.ServoEx;
 
@@ -43,11 +39,13 @@ public class    Flywheel implements Subsystem {
 
     private Flywheel() { }
 
+
     public final MotorEx Shooter1 = new MotorEx("Shooter1");
-    private final MotorEx Shooter2 = new MotorEx("Shooter2").reversed();
+    public final MotorEx Shooter2 = new MotorEx("Shooter2").reversed();
     private final MotorEx Turret = new MotorEx("Turret").zeroed().brakeMode();
     private final ServoEx Gate = new ServoEx("Gate");
     private final ServoEx Hood = new ServoEx("Hood");
+
 
     public static double closePos = 0.4;
     public static double openPos = 0.8;
@@ -172,7 +170,12 @@ public class    Flywheel implements Subsystem {
 
     private ElapsedTime timer;
 
-    public void setFlywheelPower(Follower follower){
+
+    public void setFlywheelPower(double power){
+        flywheelPower = power;
+    }
+
+    public void autoFlywheelPower(Follower follower){
         Pose goalPose = new Pose(0,144,0);
         if(!BLUE_TEAM){
             goalPose.mirror();
@@ -183,16 +186,17 @@ public class    Flywheel implements Subsystem {
 
     @Override
     public void initialize(){
+        Turret.setPower(0);
         Turret.setCurrentPosition(25);
         timer = new ElapsedTime();
         //Adding each val with a key
         lut = new InterpLUT()
         {{
-            add(10, 0.4);
-            add(30, 0.4 );
-            add(67, 0.6);
-            add(100, 0.6);
-            add(120, 0.75);
+            add(10, 0.25);
+            add(30, 0.30 );
+            add(67, 0.35);
+            add(100, 0.5);
+            add(120, 0.6);
         }};
 //generating final equation
         lut.createLUT();
@@ -205,7 +209,7 @@ public class    Flywheel implements Subsystem {
         //Shooter2.setPower(FlywheelController.calculate(Shooter1.getState()));
         //Shooter1.setPower(FlywheelController.calculate(new KineticState(0,-Shooter1.getVelocity())));
         //Shooter2.setPower(FlywheelController.calculate(new KineticState(0,-Shooter1.getVelocity())));
-        Turret.setPower(TurretController.calculate(new KineticState(Turret.getCurrentPosition(),-Turret.getVelocity())));
+        //Turret.setPower(TurretController.calculate(Turret.getState()));
 
     }
 }

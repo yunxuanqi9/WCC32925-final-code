@@ -3,10 +3,8 @@ package org.firstinspires.ftc.teamcode.NextFTC;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.NextFTC.Flywheel;
-import org.firstinspires.ftc.teamcode.NextFTC.Intake;
+import org.firstinspires.ftc.teamcode.dodgyLastMinute.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import dev.nextftc.core.components.BindingsComponent;
@@ -56,7 +54,7 @@ public class TeleOpWork extends NextFTCOpMode {
 
 
     @Override
-    public void onStartButtonPressed() {
+    public void onStartButtonPressed() {/*
 
         Flywheel.INSTANCE.closeGate();
         follower.startTeleopDrive();
@@ -69,7 +67,7 @@ public class TeleOpWork extends NextFTCOpMode {
                 .whenBecomesTrue(() -> Intake.INSTANCE.On())
                 .whenBecomesFalse(() -> Intake.INSTANCE.Off());
         Gamepads.gamepad1().square()
-                .whenBecomesTrue(() -> shooterSequencing());
+                .whenBecomesTrue(() -> shooterSequencing());*/
     }
     @Override
     public void onUpdate(){

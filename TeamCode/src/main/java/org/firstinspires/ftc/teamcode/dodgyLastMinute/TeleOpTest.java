@@ -1,0 +1,138 @@
+package org.firstinspires.ftc.teamcode.dodgyLastMinute;
+
+import com.bylazar.configurables.annotations.Configurable;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.groups.ParallelGroup;
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.components.BindingsComponent;
+import dev.nextftc.core.components.SubsystemComponent;
+import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.Gamepads;
+import dev.nextftc.ftc.NextFTCOpMode;
+import dev.nextftc.ftc.components.BulkReadComponent;
+
+@Configurable
+@TeleOp(name = "NextFTC TeleOp Test Java")
+public class TeleOpTest extends NextFTCOpMode {
+
+    public ElapsedTime gateTimer = new ElapsedTime();
+    public static Pose startingPose = new Pose(0,0,Math.toRadians(90));
+    public static double setHood = 0.79; // CHANGE IN PANELS
+    public static double waitGate = 1;
+    public static double waitIntake = 2;
+
+    public boolean triggerRapidFire = false;
+    DcMotor frontLeftMotor;
+    DcMotor frontRightMotor;
+    DcMotor backLeftMotor;
+    DcMotor backRightMotor;
+    public TeleOpTest() {
+        addComponents(
+                new PedroComponent(Constants::createFollower),
+                new SubsystemComponent(
+                        //Lift.INSTANCE,
+                        //newFlywheel.INSTANCE,
+                        Shooter.INSTANCE,
+                        Intake.INSTANCE,
+                        Turret.INSTANCE
+                ),
+                BulkReadComponent.INSTANCE,
+                BindingsComponent.INSTANCE
+        );
+    }
+
+    @Override public void onWaitForStart(){
+        PedroComponent.follower().setPose(startingPose);
+
+    }
+
+    @Override public void onInit(){
+        frontLeftMotor = hardwareMap.dcMotor.get("frontLeft");
+        backLeftMotor = hardwareMap.dcMotor.get("backLeft");
+        frontRightMotor = hardwareMap.dcMotor.get("frontRight");
+        backRightMotor = hardwareMap.dcMotor.get("backRight");
+        frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+        backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+    }
+
+
+
+    @Override
+    public void onStartButtonPressed() {
+
+        Shooter.INSTANCE.closeGate.schedule();
+        Shooter.INSTANCE.On.schedule();
+        Turret.INSTANCE.enableTracking.schedule();;
+
+        Gamepads.gamepad1().circle()
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(Shooter.INSTANCE.On)
+                .whenBecomesFalse(Shooter.INSTANCE.Off);
+        Gamepads.gamepad1().triangle()
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(Intake.INSTANCE.On)
+                .whenBecomesFalse(Intake.INSTANCE.Off);
+        Gamepads.gamepad1().square()
+                .whenBecomesTrue(new SequentialGroup(
+                        Shooter.INSTANCE.openGate,
+                        new Delay(waitGate),
+                        Intake.INSTANCE.On
+                ))
+                .whenBecomesFalse(new ParallelGroup(
+                        Shooter.INSTANCE.closeGate,
+                        Intake.INSTANCE.Off
+                ));
+
+        Gamepads.gamepad1().options()
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(Turret.INSTANCE.enableTracking)
+                .whenBecomesFalse(Turret.INSTANCE.disableTracking);
+
+    }
+    @Override
+    public void onUpdate(){
+
+
+        telemetry.addData("robot x",PedroComponent.follower().getPose().getX());
+        telemetry.addData("robot y",PedroComponent.follower().getPose().getY());
+        telemetry.addData("robot velo",PedroComponent.follower().getVelocity().getMagnitude());
+        //telemetry.addData("turret pos",Shooter.INSTANCE.getPos());
+        telemetry.addData("Shooter velo",Shooter.INSTANCE.Shooter1.getVelocity());
+        //telemetry.addData("Shooter velo",newFlywheel.INSTANCE.motor2.getVelocity());
+        telemetry.addData("gatetimer",gateTimer.seconds());
+        telemetry.addData("Shooter velocity",Shooter.INSTANCE.flywheelVelo);
+        telemetry.addData("Shooter on",Shooter.INSTANCE.flywheelOn);
+
+
+        telemetry.update();
+
+
+        double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+        double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
+        double rx = gamepad1.right_stick_x;
+
+        double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+        double frontLeftPower = (y + x + rx) / denominator;
+        double backLeftPower = (y - x + rx) / denominator;
+        double frontRightPower = (y - x - rx) / denominator;
+        double backRightPower = (y + x - rx) / denominator;
+
+        frontLeftMotor.setPower(frontLeftPower);
+        backLeftMotor.setPower(backLeftPower);
+        frontRightMotor.setPower(frontRightPower);
+        backRightMotor.setPower(backRightPower);
+    }
+
+    public void onStop(){
+        Shooter.INSTANCE.closeGate.schedule();
+    }
+}
