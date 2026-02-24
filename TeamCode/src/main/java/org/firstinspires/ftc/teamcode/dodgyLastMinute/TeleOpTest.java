@@ -10,6 +10,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
+import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
@@ -28,13 +29,14 @@ public class TeleOpTest extends NextFTCOpMode {
     public static Pose startingPose = new Pose(0,0,Math.toRadians(90));
     public static double setHood = 0.79; // CHANGE IN PANELS
     public static double waitGate = 1;
-    public static double waitIntake = 2;
+    public static double waitShoot = 3;
 
     public boolean triggerRapidFire = false;
     DcMotor frontLeftMotor;
     DcMotor frontRightMotor;
     DcMotor backLeftMotor;
     DcMotor backRightMotor;
+
     public TeleOpTest() {
         addComponents(
                 new PedroComponent(Constants::createFollower),
@@ -47,6 +49,21 @@ public class TeleOpTest extends NextFTCOpMode {
                 ),
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE
+        );
+    }
+
+    public Command shootArtifacts(){
+        return new SequentialGroup(
+          new SequentialGroup(
+                  Shooter.INSTANCE.openGate,
+                  new Delay(waitGate),
+                  Shooter.INSTANCE.On
+
+          ),
+                new ParallelGroup(
+                        Shooter.INSTANCE.closeGate,
+                        Intake.INSTANCE.Off
+                )
         );
     }
 
@@ -64,13 +81,12 @@ public class TeleOpTest extends NextFTCOpMode {
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
     }
 
-
-
     @Override
     public void onStartButtonPressed() {
 
         Shooter.INSTANCE.closeGate.schedule();
-        Shooter.INSTANCE.On.schedule();
+        //Shooter.INSTANCE.On.schedule(); // KSHITJ SAID SHOOTER DIDN'T WORK WITHOUT THIS?
+        Shooter.INSTANCE.Off.schedule();
         Turret.INSTANCE.enableTracking.schedule();;
 
         Gamepads.gamepad1().circle()
@@ -84,10 +100,10 @@ public class TeleOpTest extends NextFTCOpMode {
         Gamepads.gamepad1().square()
                 .whenBecomesTrue(new SequentialGroup(
                         Shooter.INSTANCE.openGate,
-                        new Delay(waitGate),
-                        Intake.INSTANCE.On
+                        Intake.INSTANCE.On,
+                        new Delay(1)
                 ))
-                .whenBecomesFalse(new ParallelGroup(
+                .whenBecomesFalse(new SequentialGroup(
                         Shooter.INSTANCE.closeGate,
                         Intake.INSTANCE.Off
                 ));
@@ -96,24 +112,23 @@ public class TeleOpTest extends NextFTCOpMode {
                 .toggleOnBecomesTrue()
                 .whenBecomesTrue(Turret.INSTANCE.enableTracking)
                 .whenBecomesFalse(Turret.INSTANCE.disableTracking);
+        Gamepads.gamepad1().dpadUp()
+                .whenBecomesFalse(Shooter.INSTANCE.setSpeedHigh);
+        Gamepads.gamepad1().dpadDown()
+                .whenBecomesFalse(Shooter.INSTANCE.setSpeedLow);
 
     }
     @Override
     public void onUpdate(){
-
+        telemetry.update();
 
         telemetry.addData("robot x",PedroComponent.follower().getPose().getX());
         telemetry.addData("robot y",PedroComponent.follower().getPose().getY());
         telemetry.addData("robot velo",PedroComponent.follower().getVelocity().getMagnitude());
         //telemetry.addData("turret pos",Shooter.INSTANCE.getPos());
-        telemetry.addData("Shooter velo",Shooter.INSTANCE.Shooter1.getVelocity());
         //telemetry.addData("Shooter velo",newFlywheel.INSTANCE.motor2.getVelocity());
         telemetry.addData("gatetimer",gateTimer.seconds());
-        telemetry.addData("Shooter velocity",Shooter.INSTANCE.flywheelVelo);
         telemetry.addData("Shooter on",Shooter.INSTANCE.flywheelOn);
-
-
-        telemetry.update();
 
 
         double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed

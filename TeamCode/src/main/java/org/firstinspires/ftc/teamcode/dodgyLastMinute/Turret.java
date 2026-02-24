@@ -25,18 +25,21 @@ public class Turret implements Subsystem {
     double PPR = 145.1;
 
     ControlSystem controller = ControlSystem.builder()
-            .posPid(0.003,0,0)
+            .posPid(0.007,0,0.00005) //DO NOT. UNDER ANY CIRCUMSTANCES USE VARIABLES!!!!
+            .basicFF(0.001,0,0.000001)
             .build();
 
-    private final MotorEx turretMotor = new MotorEx("Turret").zeroed().reversed().brakeMode();
-
+    private final MotorEx turretMotor = new MotorEx("Turret").zeroed().brakeMode().reversed()
+            ;
     public static boolean turretLock = false;
 
     public double getTurretPosition(){
         return turretMotor.getCurrentPosition();
     }
 
-    public Command enableTracking = new InstantCommand(() -> turretLock = false);
+    public Command enableTracking = new InstantCommand(() -> {
+        turretLock = false;
+    });
     public Command disableTracking = new InstantCommand(() -> turretLock = true);
 
     public Command setTurretPosition(double pos){
@@ -45,14 +48,21 @@ public class Turret implements Subsystem {
 
     public static Pose goalPose = new Pose(0,144);
 
+
+    public double turretDegrees;
+
     public double calculateTurretPosition(){
         Pose robotPose = PedroComponent.follower().getPose();
-        double turretDegrees = (Math.toDegrees(Math.atan2(
+        turretDegrees = (Math.toDegrees(Math.atan2(
                 goalPose.getY()- robotPose.getY(),
                 goalPose.getX()-robotPose.getPose().getX())
         ) - Math.toDegrees(robotPose.getPose().getHeading()));
         double goalLocation = (turretDegrees/360.0) * PPR * pulleyRatio;
         return Math.max(MIN_TICK_VALUE,Math.min(MAX_TICK_VALUE,goalLocation));
+    }
+
+    public void init(){
+        turretMotor.zero();
     }
 
     public void periodic(){
@@ -68,6 +78,11 @@ public class Turret implements Subsystem {
 
         turretMotor.setPower(power);
         ActiveOpMode.telemetry().addData("current motor value",turretMotor.getCurrentPosition());
+        ActiveOpMode.telemetry().addData("current VELO",turretMotor.getVelocity());
+        ActiveOpMode.telemetry().addData("current power",power);
+        ActiveOpMode.telemetry().addData("Turret locked?",turretLock);
+        ActiveOpMode.telemetry().addData("turret degrees",turretDegrees);
+
     }
 
 

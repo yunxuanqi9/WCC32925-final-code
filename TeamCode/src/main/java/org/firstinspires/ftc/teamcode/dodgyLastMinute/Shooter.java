@@ -25,10 +25,14 @@ import dev.nextftc.hardware.positionable.SetPosition;
 public class Shooter implements Subsystem {
     boolean BLUE_TEAM;
 
+    public static double fixedSpeed;
+
     public static Pose goalPose = new Pose(0,144);
 
     double PPR = 145.1; // 1150 motor
     double TURRET_LIMIT = 180;
+
+    boolean veloLock = true;
 
     public static double minHoodAngle = 35;
     public static double maxHoodAngle = 50;
@@ -36,14 +40,13 @@ public class Shooter implements Subsystem {
     boolean gateOpened  = false;
 
     public static final Shooter INSTANCE = new Shooter();
-    public static double flywheelVelo = 1000;
+    public static double lowFlywheelVelo = 700;
+    public static double highFlywheelVelo = 850;
+    public double currSpeed;
 
     public boolean flywheelOn = false;
 
     private Shooter() { }
-
-
-    private final MotorEx Turret = new MotorEx("Turret");
 
     public final MotorEx Shooter1 = new MotorEx("Shooter1");
     private final MotorEx Shooter2 = new MotorEx("Shooter2").reversed();
@@ -67,7 +70,7 @@ public class Shooter implements Subsystem {
 
     ControlSystem FlywheelController = ControlSystem.builder()
             .velPid(0.05, 0, 0)
-            .basicFF(0,0,0.0045)
+            .basicFF(0,0,0.00045)
             .build();
 
     InterpLUT lut = new InterpLUT();
@@ -76,8 +79,18 @@ public class Shooter implements Subsystem {
     public final Command Off = new InstantCommand(() -> flywheelOn = false);
 
 
-    public final Command openGate = new SetPosition(Gate,openPos);
-    public final Command closeGate = new SetPosition(Gate,closePos);
+    public final Command openGate = new InstantCommand( () ->{
+            Gate.setPosition(openPos);
+    }
+    );
+    public final Command closeGate = new InstantCommand( () ->
+            Gate.setPosition(closePos)
+    );
+
+    public Command toggleVeloLock = new InstantCommand(() -> veloLock = !veloLock);
+
+    public Command setSpeedLow = new InstantCommand(() -> currSpeed = lowFlywheelVelo);
+    public Command setSpeedHigh = new InstantCommand(() -> currSpeed = highFlywheelVelo);
 
     private ElapsedTime timer;
 
@@ -111,7 +124,11 @@ public class Shooter implements Subsystem {
 
         double distance = robotPose.distanceFrom(goalPose);
 
-        FlywheelController.setGoal(new KineticState(0, lut.get(distance), 0));
+        if(!veloLock){
+            currSpeed = lut.get(distance);
+            }
+
+        FlywheelController.setGoal(new KineticState(0,currSpeed,0));
 
         double power = 0;
         if (flywheelOn) {
@@ -124,6 +141,8 @@ public class Shooter implements Subsystem {
 
         ActiveOpMode.telemetry().addData("power", power);
         ActiveOpMode.telemetry().addData("current velo", shooterMotors.getVelocity());
+        ActiveOpMode.telemetry().addData("speed set!", currSpeed);
+        ActiveOpMode.telemetry().addData("shooter lock?", veloLock);
 
     }
 }

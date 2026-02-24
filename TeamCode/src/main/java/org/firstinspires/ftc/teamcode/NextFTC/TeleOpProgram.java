@@ -21,7 +21,7 @@ import dev.nextftc.ftc.components.BulkReadComponent;
 @TeleOp(name = "NextFTC TeleOp Program Java")
 public class TeleOpProgram extends NextFTCOpMode {
 
-    /*public ElapsedTime gateTimer = new ElapsedTime();
+    public ElapsedTime gateTimer = new ElapsedTime();
     private Follower follower;
     public static Pose startingPose = new Pose(56,8,Math.toRadians(90));
     public static double setHood = 36;
@@ -46,13 +46,13 @@ public class TeleOpProgram extends NextFTCOpMode {
     public void intakeSequencing(){
         if(!triggerRapidFire){
             Flywheel.INSTANCE.closeGate();
-            Intake.INSTANCE.On();
+            Intake.INSTANCE.On.schedule();
         }
     }
 
     public void shooterSequencing() {
         gateTimer.reset();
-        Intake.INSTANCE.Off();
+        //Intake.INSTANCE.Off();
         Flywheel.INSTANCE.openGate();
         triggerRapidFire = true;
 
@@ -88,15 +88,17 @@ public class TeleOpProgram extends NextFTCOpMode {
                 .whenBecomesTrue(() -> shoot());
         Gamepads.gamepad1().circle()
                 .whenBecomesTrue(() -> Flywheel.INSTANCE.Off());
-        Gamepads.gamepad1().triangle()
+        Gamepads.gamepad1().rightBumper()
                 .whenBecomesTrue(() -> intakeSequencing())
-                .whenBecomesFalse(() -> Intake.INSTANCE.Off());
+                .whenBecomesFalse(Intake.INSTANCE.Off)
+        ;
         Gamepads.gamepad1().square()
                 .whenBecomesTrue(() -> {
                     shooterSequencing();
                 });
-        Gamepads.gamepad1().rightBumper()
-                .whenBecomesTrue(() -> Flywheel.INSTANCE.setTurretAngle(150));
+        Gamepads.gamepad1().options()
+                .whenBecomesTrue(Intake.INSTANCE.Unclog)
+                .whenBecomesFalse(Intake.INSTANCE.Off);
 
         Gamepads.gamepad1().dpadUp()
                 .whenBecomesTrue(() -> Flywheel.INSTANCE.setFlywheelPower(upPower));
@@ -109,11 +111,11 @@ public class TeleOpProgram extends NextFTCOpMode {
         //Flywheel.INSTANCE.autoFlywheelPower(follower);
 
         if(triggerRapidFire && gateTimer.seconds() > waitGate){
-            Intake.INSTANCE.rapidFire();
+            Intake.INSTANCE.On.schedule();
             triggerRapidFire = false;
         }
         if(triggerRapidFire && gateTimer.seconds() > waitIntake){
-            Intake.INSTANCE.Off();
+            Intake.INSTANCE.Off.schedule();
             Flywheel.INSTANCE.Off();
         }
         follower.update();
@@ -126,7 +128,6 @@ public class TeleOpProgram extends NextFTCOpMode {
         telemetry.addData("flywheel velo",Flywheel.INSTANCE.Shooter1.getVelocity());
         telemetry.addData("gatetimer",gateTimer.seconds());
         telemetry.addData("flywheel velocity",Flywheel.INSTANCE.flywheelPower);
-
         telemetry.update();
 
 
@@ -144,10 +145,9 @@ public class TeleOpProgram extends NextFTCOpMode {
         backLeftMotor.setPower(backLeftPower);
         frontRightMotor.setPower(frontRightPower);
         backRightMotor.setPower(backRightPower);
-
     }
 
     public void onStop(){
         Flywheel.INSTANCE.closeGate();
-    }*/
+    }
 }
