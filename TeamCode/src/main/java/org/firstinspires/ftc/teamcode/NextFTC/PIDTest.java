@@ -9,6 +9,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.dodgyLastMinute.Intake;
+import org.firstinspires.ftc.teamcode.dodgyLastMinute.SimpleFlywheelPID;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import dev.nextftc.core.components.BindingsComponent;
@@ -18,11 +19,10 @@ import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
 
 @Configurable
-@TeleOp(name = "NextFTC TeleOp Program Java")
-public class TeleOpProgram extends NextFTCOpMode {
+@TeleOp(name = "NextFTC Test")
+public class PIDTest extends NextFTCOpMode {
 
     public ElapsedTime gateTimer = new ElapsedTime();
-    private Follower follower;
     public static Pose startingPose = new Pose(56,8,Math.toRadians(90));
     public static double setHood = 36;
     public static double waitGate = 1;
@@ -35,9 +35,9 @@ public class TeleOpProgram extends NextFTCOpMode {
     DcMotor frontRightMotor;
     DcMotor backLeftMotor;
     DcMotor backRightMotor;
-    public TeleOpProgram() {
+    public PIDTest() {
         addComponents(
-                new SubsystemComponent(Flywheel.INSTANCE, Intake.INSTANCE),
+                new SubsystemComponent(SimpleFlywheelPID.INSTANCE, Intake.INSTANCE),
                 BulkReadComponent.INSTANCE,
                 BindingsComponent.INSTANCE
         );
@@ -45,7 +45,7 @@ public class TeleOpProgram extends NextFTCOpMode {
 
     public void intakeSequencing(){
         if(!triggerRapidFire){
-            Flywheel.INSTANCE.closeGate();
+            SimpleFlywheelPID.INSTANCE.closeGate();
             Intake.INSTANCE.On.schedule();
         }
     }
@@ -53,7 +53,7 @@ public class TeleOpProgram extends NextFTCOpMode {
     public void shooterSequencing() {
         gateTimer.reset();
         //Intake.INSTANCE.Off();
-        Flywheel.INSTANCE.openGate();
+        SimpleFlywheelPID.INSTANCE.openGate();
         triggerRapidFire = true;
 
     }
@@ -63,31 +63,28 @@ public class TeleOpProgram extends NextFTCOpMode {
         backLeftMotor = hardwareMap.dcMotor.get("backLeft");
         frontRightMotor = hardwareMap.dcMotor.get("frontRight");
         backRightMotor = hardwareMap.dcMotor.get("backRight");
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(startingPose == null ? new Pose() : startingPose);
-        follower.update();
         frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
         backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
     }
 
     public void shoot(){
-        Flywheel.INSTANCE.On();
+        SimpleFlywheelPID.INSTANCE.On.schedule();
         telemetry.addData("works","ig");
         telemetry.update();
     }
 
 
-    public static double upPower = 0.65;
-    public static double downPower = 0.45;
+    public static double upPower = 0.8;
+    public static double downPower = 0.6;
 
     @Override
     public void onStartButtonPressed() {
 
-        Flywheel.INSTANCE.closeGate();
+        SimpleFlywheelPID.INSTANCE.closeGate();
         Gamepads.gamepad1().cross()
                 .whenBecomesTrue(() -> shoot());
         Gamepads.gamepad1().circle()
-                .whenBecomesTrue(() -> Flywheel.INSTANCE.Off());
+                .whenBecomesTrue( SimpleFlywheelPID.INSTANCE.Off);
         Gamepads.gamepad1().rightBumper()
                 .whenBecomesTrue(() -> intakeSequencing())
                 .whenBecomesFalse(Intake.INSTANCE.Off)
@@ -101,14 +98,13 @@ public class TeleOpProgram extends NextFTCOpMode {
                 .whenBecomesFalse(Intake.INSTANCE.Off);
 
         Gamepads.gamepad1().dpadUp()
-                .whenBecomesTrue(() -> Flywheel.INSTANCE.setFlywheelPower(upPower));
+                .whenBecomesTrue(SimpleFlywheelPID.INSTANCE.setSpeedHigh);
 
         Gamepads.gamepad1().dpadDown()
-                .whenBecomesTrue(() -> Flywheel.INSTANCE.setFlywheelPower(downPower));
+                .whenBecomesTrue(SimpleFlywheelPID.INSTANCE.setSpeedLow);
     }
     @Override
     public void onUpdate(){
-        //Flywheel.INSTANCE.autoFlywheelPower(follower);
 
         if(triggerRapidFire && gateTimer.seconds() > waitGate){
             Intake.INSTANCE.On.schedule();
@@ -116,18 +112,11 @@ public class TeleOpProgram extends NextFTCOpMode {
         }
         if(triggerRapidFire && gateTimer.seconds() > waitIntake){
             Intake.INSTANCE.Off.schedule();
-            Flywheel.INSTANCE.Off();
+            SimpleFlywheelPID.INSTANCE.Off.schedule();
         }
-        follower.update();
-        Flywheel.INSTANCE.setHoodAngle(50);
-        telemetry.addData("hood pos",Flywheel.INSTANCE.hoodPos());
-        telemetry.addData("robot x",follower.getPose().getX());
-        telemetry.addData("robot y",follower.getPose().getY());
-        telemetry.addData("robot velo",follower.getVelocity().getMagnitude());
-        telemetry.addData("turret pos",Flywheel.INSTANCE.getPos());
-        telemetry.addData("flywheel velo",Flywheel.INSTANCE.Shooter1.getVelocity());
+        telemetry.addData("flywheel velo",SimpleFlywheelPID.INSTANCE.Shooter1.getVelocity());
         telemetry.addData("gatetimer",gateTimer.seconds());
-        telemetry.addData("flywheel velocity",Flywheel.INSTANCE.flywheelPower);
+        telemetry.addData("flywheel velocity",SimpleFlywheelPID.INSTANCE.currSpeed);
         telemetry.update();
 
 
@@ -148,6 +137,6 @@ public class TeleOpProgram extends NextFTCOpMode {
     }
 
     public void onStop(){
-        Flywheel.INSTANCE.closeGate();
+        SimpleFlywheelPID.INSTANCE.closeGate();
     }
 }

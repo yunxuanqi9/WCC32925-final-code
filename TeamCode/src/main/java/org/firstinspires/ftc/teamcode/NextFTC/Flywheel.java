@@ -47,7 +47,7 @@ public class    Flywheel implements Subsystem {
     private final ServoEx Hood = new ServoEx("Hood");
 
 
-    public static double closePos = 0.4;
+    public static double closePos = 0.25;
     public static double openPos = 0.8;
 
 

@@ -1,10 +1,9 @@
 package org.firstinspires.ftc.teamcode.autos;
 
 
-import static org.firstinspires.ftc.teamcode.dodgyLastMinute.TeleOpTest.waitGate;
-import static org.firstinspires.ftc.teamcode.dodgyLastMinute.TeleOpTest.waitShoot;
+import static org.firstinspires.ftc.teamcode.testTeleOp.TeleOpTest.waitGate;
+import static org.firstinspires.ftc.teamcode.testTeleOp.TeleOpTest.waitShoot;
 
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;

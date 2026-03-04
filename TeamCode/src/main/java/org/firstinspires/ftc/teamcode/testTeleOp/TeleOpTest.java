@@ -1,13 +1,16 @@
-package org.firstinspires.ftc.teamcode.dodgyLastMinute;
+package org.firstinspires.ftc.teamcode.testTeleOp;
 
 import com.bylazar.configurables.annotations.Configurable;
-import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.teamcode.dodgyLastMinute.Intake;
+import org.firstinspires.ftc.teamcode.dodgyLastMinute.Shooter;
+import org.firstinspires.ftc.teamcode.dodgyLastMinute.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import dev.nextftc.core.commands.Command;
@@ -20,13 +23,12 @@ import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.Gamepads;
 import dev.nextftc.ftc.NextFTCOpMode;
 import dev.nextftc.ftc.components.BulkReadComponent;
-
 @Configurable
 @TeleOp(name = "NextFTC TeleOp Test Java")
 public class TeleOpTest extends NextFTCOpMode {
 
     public ElapsedTime gateTimer = new ElapsedTime();
-    public static Pose startingPose = new Pose(0,0,Math.toRadians(90));
+    public static Pose startingPose = new Pose(0,12,Math.toRadians(90));
     public static double setHood = 0.79; // CHANGE IN PANELS
     public static double waitGate = 1;
     public static double waitShoot = 3;
@@ -93,19 +95,15 @@ public class TeleOpTest extends NextFTCOpMode {
                 .toggleOnBecomesTrue()
                 .whenBecomesTrue(Shooter.INSTANCE.On)
                 .whenBecomesFalse(Shooter.INSTANCE.Off);
-        Gamepads.gamepad1().triangle()
-                .toggleOnBecomesTrue()
+        Gamepads.gamepad1().rightBumper()
                 .whenBecomesTrue(Intake.INSTANCE.On)
                 .whenBecomesFalse(Intake.INSTANCE.Off);
         Gamepads.gamepad1().square()
                 .whenBecomesTrue(new SequentialGroup(
-                        Shooter.INSTANCE.openGate,
-                        Intake.INSTANCE.On,
-                        new Delay(1)
-                ))
-                .whenBecomesFalse(new SequentialGroup(
-                        Shooter.INSTANCE.closeGate,
-                        Intake.INSTANCE.Off
+                        Shooter.INSTANCE.openGate.thenWait(0.2),
+                        Intake.INSTANCE.On.thenWait(2),
+                        Intake.INSTANCE.Off,
+                        Shooter.INSTANCE.closeGate
                 ));
 
         Gamepads.gamepad1().options()
@@ -121,15 +119,8 @@ public class TeleOpTest extends NextFTCOpMode {
     @Override
     public void onUpdate(){
         telemetry.update();
-
-        telemetry.addData("robot x",PedroComponent.follower().getPose().getX());
-        telemetry.addData("robot y",PedroComponent.follower().getPose().getY());
-        telemetry.addData("robot velo",PedroComponent.follower().getVelocity().getMagnitude());
-        //telemetry.addData("turret pos",Shooter.INSTANCE.getPos());
-        //telemetry.addData("Shooter velo",newFlywheel.INSTANCE.motor2.getVelocity());
         telemetry.addData("gatetimer",gateTimer.seconds());
         telemetry.addData("Shooter on",Shooter.INSTANCE.flywheelOn);
-
 
         double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
         double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing

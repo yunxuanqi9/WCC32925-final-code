@@ -5,6 +5,8 @@ import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.control.ControlSystem;
 import dev.nextftc.control.KineticState;
+import dev.nextftc.control.feedback.PIDCoefficients;
+import dev.nextftc.control.feedforward.BasicFeedforwardParameters;
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.utility.InstantCommand;
 import dev.nextftc.core.subsystems.Subsystem;
@@ -14,20 +16,40 @@ import dev.nextftc.hardware.impl.MotorEx;
 
 @Configurable
 public class Turret implements Subsystem {
+
+
+    public static PIDCoefficients turretCoefficients = new PIDCoefficients(0.02,0,0.0008);
+    public static BasicFeedforwardParameters turretFFCoefficients = new BasicFeedforwardParameters(0.001,0,0.000001);
+
+
     public static final Turret INSTANCE = new Turret();
+
+
+    ControlSystem controller = ControlSystem.builder()
+            .posPid(turretCoefficients) //DO NOT. UNDER ANY CIRCUMSTANCES USE VARIABLES!!!!
+            .basicFF(turretFFCoefficients)
+            .build();
+
+
     private Turret(){}
 
-    public static double MAX_TICK_VALUE = 300;
-    public static double MIN_TICK_VALUE = -300;
+    public static double MAX_TICK_VALUE = 310;
+    public static double MIN_TICK_VALUE = -270;
+
+
+    //public static double MAX_TICK_VALUE = 380;
+    //public static double MIN_TICK_VALUE = -310;
 
     double pulleyRatio = 8;
 
     double PPR = 145.1;
 
-    ControlSystem controller = ControlSystem.builder()
-            .posPid(0.007,0,0.00005) //DO NOT. UNDER ANY CIRCUMSTANCES USE VARIABLES!!!!
-            .basicFF(0.001,0,0.000001)
-            .build();
+
+    //ControlSystem controller;
+
+
+
+
 
     private final MotorEx turretMotor = new MotorEx("Turret").zeroed().brakeMode().reversed()
             ;
