@@ -1,7 +1,10 @@
 package org.firstinspires.ftc.teamcode.testTeleOp;
 
 import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.configurables.annotations.IgnoreConfigurable;
+import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.util.PoseHistory;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -28,10 +31,17 @@ import dev.nextftc.ftc.components.BulkReadComponent;
 public class TeleOpTest extends NextFTCOpMode {
 
     public ElapsedTime gateTimer = new ElapsedTime();
-    public static Pose startingPose = new Pose(0,12,Math.toRadians(90));
+    public static Pose startingPose = new Pose(9,24,Math.toRadians(90));
     public static double setHood = 0.79; // CHANGE IN PANELS
-    public static double waitGate = 1;
-    public static double waitShoot = 3;
+    public static double waitGate = 0.2;
+    public static double waitShoot = 2  ;
+
+
+    @IgnoreConfigurable
+    static PoseHistory poseHistory;
+
+    @IgnoreConfigurable
+    static TelemetryManager telemetryM;
 
     public boolean triggerRapidFire = false;
     DcMotor frontLeftMotor;
@@ -100,8 +110,8 @@ public class TeleOpTest extends NextFTCOpMode {
                 .whenBecomesFalse(Intake.INSTANCE.Off);
         Gamepads.gamepad1().square()
                 .whenBecomesTrue(new SequentialGroup(
-                        Shooter.INSTANCE.openGate.thenWait(0.2),
-                        Intake.INSTANCE.On.thenWait(2),
+                        Shooter.INSTANCE.openGate.thenWait(waitGate),
+                        Intake.INSTANCE.On.thenWait(1),
                         Intake.INSTANCE.Off,
                         Shooter.INSTANCE.closeGate
                 ));

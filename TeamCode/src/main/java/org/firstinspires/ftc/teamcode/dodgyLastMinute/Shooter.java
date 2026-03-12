@@ -34,7 +34,7 @@ public class Shooter implements Subsystem {
     double PPR = 145.1; // 1150 motor
     double TURRET_LIMIT = 180;
 
-    boolean veloLock = false;
+    boolean veloLock = true;
 
     public static double minHoodAngle = 35;
     public static double maxHoodAngle = 50;
@@ -50,7 +50,7 @@ public class Shooter implements Subsystem {
     public static final Shooter INSTANCE = new Shooter();
     public static double lowFlywheelVelo = 700;
     public static double highFlywheelVelo = 850;
-    public double currSpeed = 100;
+    public static double currSpeed = 100;
 
     public boolean flywheelOn = false;
 
@@ -64,8 +64,8 @@ public class Shooter implements Subsystem {
     private final ServoEx Gate = new ServoEx("Gate");
 
 
-    public static double closePos = 0.25;
-    public static double openPos = 0.8;
+    public static double closePos = 0.66;
+    public static double openPos = 0.78;
 
 
     ControlSystem FlywheelController = ControlSystem.builder()
@@ -137,6 +137,7 @@ public class Shooter implements Subsystem {
         ActiveOpMode.telemetry().addData("power", power);
         ActiveOpMode.telemetry().addData("current velo", shooterMotors.getVelocity());
         ActiveOpMode.telemetry().addData("speed set!", currSpeed);
+        ActiveOpMode.telemetry().addData("distance!", distance);
         ActiveOpMode.telemetry().addData("shooter lock?", veloLock);
 
     }
