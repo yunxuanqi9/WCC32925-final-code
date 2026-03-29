@@ -77,7 +77,7 @@ public class Turret implements Subsystem {
         return Math.max(MIN_TICK_VALUE,Math.min(MAX_TICK_VALUE,goalLocation));
     }
 
-    public void init(){
+    public void initialize(){
         turretMotor.zero();
     }
 

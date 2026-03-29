@@ -66,15 +66,12 @@ public class TeleOpTest extends NextFTCOpMode {
     public Command shootArtifacts(){
         return new SequentialGroup(
           new SequentialGroup(
-                  Shooter.INSTANCE.openGate,
-                  new Delay(waitGate),
-                  Shooter.INSTANCE.On
+                  Shooter.INSTANCE.openGate.thenWait(waitGate),
+                  Intake.INSTANCE.On.thenWait(1),
+                  Intake.INSTANCE.Off,
+                  Shooter.INSTANCE.closeGate
 
-          ),
-                new ParallelGroup(
-                        Shooter.INSTANCE.closeGate,
-                        Intake.INSTANCE.Off
-                )
+          )
         );
     }
 
@@ -98,15 +95,17 @@ public class TeleOpTest extends NextFTCOpMode {
         Shooter.INSTANCE.closeGate.schedule();
         //Shooter.INSTANCE.On.schedule(); // KSHITJ SAID SHOOTER DIDN'T WORK WITHOUT THIS?
         Shooter.INSTANCE.Off.schedule();
-        Turret.INSTANCE.enableTracking.schedule();;
+
+        Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
 
         Gamepads.gamepad1().circle()
                 .toggleOnBecomesTrue()
                 .whenBecomesTrue(Shooter.INSTANCE.On)
                 .whenBecomesFalse(Shooter.INSTANCE.Off);
-        Gamepads.gamepad1().rightBumper()
+        Gamepads.gamepad1().rightTrigger().atLeast(0.3)
                 .whenBecomesTrue(Intake.INSTANCE.On)
                 .whenBecomesFalse(Intake.INSTANCE.Off);
+
         Gamepads.gamepad1().square()
                 .whenBecomesTrue(new SequentialGroup(
                         Shooter.INSTANCE.openGate.thenWait(waitGate),
