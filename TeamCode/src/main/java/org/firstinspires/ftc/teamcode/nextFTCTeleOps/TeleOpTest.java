@@ -1,19 +1,19 @@
-package org.firstinspires.ftc.teamcode.testTeleOp;
+package org.firstinspires.ftc.teamcode.nextFTCTeleOps;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.configurables.annotations.IgnoreConfigurable;
 import com.bylazar.telemetry.TelemetryManager;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.util.PoseHistory;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.dodgyLastMinute.Intake;
-import org.firstinspires.ftc.teamcode.dodgyLastMinute.Shooter;
-import org.firstinspires.ftc.teamcode.dodgyLastMinute.Turret;
+import org.firstinspires.ftc.teamcode.autos.autoConstants;
+import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import dev.nextftc.core.commands.Command;
@@ -31,8 +31,7 @@ import dev.nextftc.ftc.components.BulkReadComponent;
 public class TeleOpTest extends NextFTCOpMode {
 
     public ElapsedTime gateTimer = new ElapsedTime();
-    public static Pose startingPose = new Pose(9,24,Math.toRadians(90));
-    public static double setHood = 0.79; // CHANGE IN PANELS
+    public static Pose startingPose = new Pose(autoConstants.robotWidth/2,24 + autoConstants.robotCenterDistBack,Math.toRadians(90));
     public static double waitGate = 0.2;
     public static double waitShoot = 2  ;
 

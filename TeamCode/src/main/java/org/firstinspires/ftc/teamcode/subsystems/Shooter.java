@@ -1,8 +1,7 @@
-package org.firstinspires.ftc.teamcode.dodgyLastMinute;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
-import com.qualcomm.robotcore.util.ElapsedTime;
 import com.seattlesolvers.solverslib.util.InterpLUT;
 
 import dev.nextftc.control.ControlSystem;
@@ -17,7 +16,6 @@ import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.hardware.controllable.MotorGroup;
 import dev.nextftc.hardware.impl.MotorEx;
 import dev.nextftc.hardware.impl.ServoEx;
-import dev.nextftc.hardware.positionable.SetPosition;
 
 /**
  * The flywheel subsystem implemented from
@@ -29,6 +27,9 @@ public class Shooter implements Subsystem {
 
     public static double fixedSpeed;
 
+    public static double setHood = 0; // CHANGE IN PANELS
+    public static double maxHoodPose = 0.68;
+
     public static Pose goalPose = new Pose(0,144);
 
     double PPR = 145.1; // 1150 motor
@@ -36,12 +37,15 @@ public class Shooter implements Subsystem {
 
     boolean veloLock = true;
 
-    public static double minHoodAngle = 35;
+    public static double minHoodAngle = 30;
     public static double maxHoodAngle = 50;
     public static double currHoodAngle = minHoodAngle;
 
-    public static PIDCoefficients flywheelCoefficients = new PIDCoefficients(0.023,0,0.00007);
-    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.00445,0,0.0001);
+
+
+
+    public static PIDCoefficients flywheelCoefficients = new PIDCoefficients(0.018,0,0.00007);
+    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.0007,0,0.0001);
 
     //ALWAYS DECLARE BEFORE INSTANCE!
 
@@ -63,8 +67,11 @@ public class Shooter implements Subsystem {
 
     private final ServoEx Gate = new ServoEx("Gate");
 
+    private final ServoEx Hood = new ServoEx("Hood");
 
-    public static double closePos = 0.66;
+
+
+    public static double closePos = 0.6;
     public static double openPos = 0.78;
 
 
@@ -73,7 +80,9 @@ public class Shooter implements Subsystem {
             .basicFF(flywheelFFCoefficients)
             .build();
 
-    InterpLUT lut = new InterpLUT();
+    InterpLUT velolut = new InterpLUT();
+    InterpLUT hoodlut = new InterpLUT();
+
 
     public final Command On = new InstantCommand(() -> flywheelOn = true);
     public final Command Off = new InstantCommand(() -> flywheelOn = false);
@@ -88,6 +97,11 @@ public class Shooter implements Subsystem {
     }
     );
 
+    public final Command turnHood = new InstantCommand(() ->{
+        Gate.setPosition(setHood);
+    }
+    );
+
     public Command setSpeedLow = new InstantCommand(() -> currSpeed = lowFlywheelVelo);
     public Command setSpeedHigh = new InstantCommand(() -> currSpeed = highFlywheelVelo);
 
@@ -99,28 +113,40 @@ public class Shooter implements Subsystem {
             goalPose.mirror();
         }
         //Adding each val with a key
-        lut = new InterpLUT()
+        hoodlut = new InterpLUT()
+        {{
+            add(60.6, 0.1);
+            add(70, 0.2);
+
+        }};
+
+        velolut = new InterpLUT()
         {{
             add(24, 750);
-            add(60, 840);
+            add(60.6, 700);
             add(84, 910 );
             add(120, 1075);
             add(144, 1215);
         }};
 //generating final equation
-        lut.createLUT();
+        velolut.createLUT();
+        hoodlut.createLUT();
 
+
+        closeGate.schedule();
     }
 
     @Override
     public void periodic() {
+
+        Hood.setPosition(setHood);
 
         Pose robotPose = PedroComponent.follower().getPose();
 
         double distance = robotPose.distanceFrom(goalPose);
 
         if(!veloLock){
-            currSpeed = lut.get(distance);
+            currSpeed = velolut.get(distance);
         }
 
         FlywheelController.setGoal(new KineticState(0,currSpeed,0));

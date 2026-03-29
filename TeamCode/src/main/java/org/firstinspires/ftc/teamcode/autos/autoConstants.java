@@ -7,4 +7,6 @@ public class autoConstants {
     public static void writePose(Pose pose) {
         startingPose = pose;
     }
+    public static double robotWidth = 16.221; //412 mm
+    public static double robotCenterDistBack = 7.598; // 193mm
 }

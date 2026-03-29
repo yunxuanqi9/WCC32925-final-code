@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.dodgyLastMinute;
+package org.firstinspires.ftc.teamcode.subsystems;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.geometry.Pose;
@@ -43,12 +43,6 @@ public class Turret implements Subsystem {
     double pulleyRatio = 8;
 
     double PPR = 145.1;
-
-
-    //ControlSystem controller;
-
-
-
 
 
     private final MotorEx turretMotor = new MotorEx("Turret").zeroed().brakeMode().reversed()

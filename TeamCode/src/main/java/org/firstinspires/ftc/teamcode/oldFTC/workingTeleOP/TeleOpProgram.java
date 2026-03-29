@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.workingTeleOP;
+package org.firstinspires.ftc.teamcode.oldFTC.workingTeleOP;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
@@ -8,8 +8,8 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
-import org.firstinspires.ftc.teamcode.NextFTC.Flywheel;
-import org.firstinspires.ftc.teamcode.dodgyLastMinute.Intake;
+import org.firstinspires.ftc.teamcode.oldFTC.Flywheel;
+import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 import dev.nextftc.core.components.BindingsComponent;

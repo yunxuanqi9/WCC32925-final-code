@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.NextFTC;
+package org.firstinspires.ftc.teamcode.oldFTC;
 
 import com.bylazar.configurables.annotations.Configurable;
 import com.pedropathing.follower.Follower;
@@ -47,8 +47,8 @@ public class    Flywheel implements Subsystem {
     private final ServoEx Hood = new ServoEx("Hood");
 
 
-    public static double closePos = 0.25;
-    public static double openPos = 0.8;
+    public static double closePos = 0.66;
+    public static double openPos = 0.78;
 
 
     public static double p = 0.05; // CONFIGURE
