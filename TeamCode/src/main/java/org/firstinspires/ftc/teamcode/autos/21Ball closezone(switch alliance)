@@ -1,464 +1,295 @@
-package org.firstinspires.ftc.teamcode.auto;
+package org.firstinspires.ftc.teamcode.autos;
 
-// import Pedro pathing
-import com.pedropathing.follower.Follower;
+
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitGate;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitShoot;
+import static dev.nextftc.extensions.pedro.PedroComponent.follower;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.TelemetryManager;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
 import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Point;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.Path;
+import com.pedropathing.follower.Follower;
 import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
+import com.pedropathing.geometry.Pose;
 
-// import FTC
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.Servo;
-
-// import subsytem turret 
-import org.firstinspires.ftc.teamcode.subsystems.Turret;
-
-// bridge
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.groups.ParallelGroup;
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.components.SubsystemComponent;
+import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.NextFTCOpMode;
 
-/**
- * ═══════════════════════════════════════════════════════════════════════
- *  21-Ball Autonomous — Decode Season
- *
- *  Sequence (7 shoot zones × 3 balls = 21 balls):
- *    Start → Shoot1 (preloads) → Row1 intake → Shoot2 →
- *    Row2 intake → Shoot3 → Gate×4 → Shoot4-7
- *
- *  ── To switch alliance, change ALLIANCE below ────────────────────────
- * ═══════════════════════════════════════════════════════════════════════
- */
-@Autonomous(name = "21 Ball Auto", group = "Decode")
-public class Auto21Ball extends OpMode {
+@Autonomous(name = "21 Ball Auto", group = "Autonomous")
+@Configurable
+public class Auto21Ball extends NextFTCOpMode {
 
-    // ── Alliance (change) ──────────────────────────────────────────────────
-    private enum Alliance { BLUE, RED }
-    private static final Alliance ALLIANCE = Alliance.BLUE;   // ← CHANGE FOR RED
+    Auto21Ball() {
+        addComponents(
+                new SubsystemComponent(
+                        Turret.INSTANCE,
+                        Shooter.INSTANCE,
+                        Intake.INSTANCE
+                ),
+                new PedroComponent(Constants::createFollower)
+        );
+    }
 
-    // ── Time constants (ms) ─────────────────────────────────────────────
-    private static final double SHOOT_MS       = 600;
-    private static final double GATE_INTAKE_MS = 200;
+    private TelemetryManager panelsTelemetry;
+    public Follower follower;
+    private int pathState;
+    private ElapsedTime autoTimer = new ElapsedTime();
 
-    // ── Hardware config names ─────────────────────────────────────────────
-    private static final String INTAKE_NAME  = "intake";
-    private static final String SHOOTER_NAME = "shooter";
-    private static final String FEEDER_NAME  = "feeder";
 
-    private static final double FEEDER_FIRE    = 1.0;
-    private static final double FEEDER_RETRACT = 0.0;
-
-    // ── Hardware ──────────────────────────────────────────────────────────
-    private DcMotor intakeMotor;
-    private DcMotor shooterMotor;
-    private Servo   feederServo;
-
-    // ── Pedro pathing ─────────────────────────────────────────────────────
-    private Follower  follower;
-    private Timer     pathTimer;
-    private int       pathState;
-
-    // ── Goal poses from your JSON shapes ──────────────────────────────────
-    // Blue goal opening: roughly (3.5, 119). Red: roughly (139, 119).
-    private static final Pose BLUE_GOAL = new Pose(3.5,  119, 0);
-    private static final Pose RED_GOAL  = new Pose(139,  119, 0);
-
-    // ── Start pose (from JSON startPoint) ────────────────────────────────
-    private static final Pose START_POSE = new Pose(18.226, 119.443, Math.toRadians(90));
-
-    // ── Individual paths ──────────────────────────────────────────────────
-    private Path goalTo1Shoot;
-    private Path shoot1ToIntake1;
-    private Path intake1To2Shoot;
-    private Path shoot2ToIntake2;
-    private Path intake2To3Shoot;
-    private Path shoot3ToGate;
-    private Path gateTo7Shoot;
-
-    // ── Gate cycle PathChains (gate→shoot→gate in one continuous chain) ───
-    private PathChain gate1Cycle; // → shoot4 → gate
-    private PathChain gate2Cycle; // → shoot5 → gate
-    private PathChain gate3Cycle; // → shoot6 → gate
-
-    // ═════════════════════════════════════════════════════════════════════
-    //   LIFECYCLE
-    // ═════════════════════════════════════════════════════════════════════
+    public PathChain goalTo1Shoot;
+    public PathChain shoot1ToIntake1;
+    public PathChain intake1To2Shoot;
+    public PathChain shoot2ToIntake2;
+    public PathChain intake2To3Shoot;
+    public PathChain shoot3ToGate;
+    public PathChain gateTo4Shoot;
+    public PathChain shoot4ToGate;
+    public PathChain gateTo5Shoot;
+    public PathChain shoot5ToGate;
+    public PathChain gateTo6Shoot;
+    public PathChain shoot6ToGate;
+    public PathChain gateTo7Shoot;
 
     @Override
-    public void init() {
-        follower = new Follower(hardwareMap);
-        follower.setStartingPose(START_POSE);
-
-        // Register the follower with NextFTC so Turret.java can access it
-        // via PedroComponent.follower() inside its calculateTurretPosition().
-        PedroComponent.setFollower(follower);
-
-        pathTimer = new Timer();
-        pathState = 0;
-
-        // Point the turret at the correct goal for this alliance
-        Turret.goalPose = (ALLIANCE == Alliance.BLUE) ? BLUE_GOAL : RED_GOAL;
-        Turret.INSTANCE.init();
-        Turret.turretLock = true; // locked until first shoot zone
-
-        initHardware();
+    public void onInit() {
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         buildPaths();
-        startShooter(); // spin up early — flywheel needs time to reach speed
-
-        telemetry.addData("Alliance", ALLIANCE);
-        telemetry.addData("Status",   "✓ Ready");
-        telemetry.update();
+        follower().setStartingPose(new Pose(18.226, 119.443, Math.toRadians(90)));
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);
+        pathState = 0;
     }
 
+    // no this? 
     @Override
-    public void init_loop() {
-        Turret.INSTANCE.periodic(); // keeps turret zeroed during wait
+    public void onStartButtonPressed() {
+        autonomousRoutine().schedule();
     }
 
-    @Override
-    public void start() {
-        follower.followPath(goalTo1Shoot, true);
-        Turret.turretLock = false; // start aiming as we drive to shoot zone 1
-        runIntake();
-        pathTimer.resetTimer();
-        setPathState(1);
-    }
-
-    @Override
-    public void loop() {
-        follower.update();
-        Turret.INSTANCE.periodic(); // MUST run every loop tick
-
-        autonomousUpdate();
-
-        telemetry.addData("State",  pathState);
-        telemetry.addData("t(ms)", (int)(pathTimer.getElapsedTimeSeconds() * 1000));
-        telemetry.addData("Busy",  follower.isBusy());
-        telemetry.addData("TurretLocked", Turret.turretLock);
-        telemetry.addData("TurretDeg",    String.format("%.1f", Turret.INSTANCE.turretDegrees));
-        telemetry.update();
+   
+    public Command shootArtifacts() {
+        return new SequentialGroup(
+                new SequentialGroup(
+                        Shooter.INSTANCE.openGate,
+                        new Delay(waitGate),
+                        Intake.INSTANCE.On,
+                        new Delay(waitShoot)
+                ),
+                new ParallelGroup(
+                        Shooter.INSTANCE.closeGate,
+                        Intake.INSTANCE.Off
+                )
+        );
     }
 
     
-    private void autonomousUpdate() {
-        switch (pathState) {
+    public Command autonomousRoutine() {
+        return new SequentialGroup(
 
-            // ── Wait for shoot zone 1; drive started in start() ──────────
-            case 1:
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(2);
-                }
-                break;
+                // Turret on and flywheel spun up before first move
+                Turret.INSTANCE.enableTracking,
+                Shooter.INSTANCE.On,
 
-            // ── Shoot 1 ───────────────────────────────────────────────────
-            case 2:
-                feedBalls();
-                if (ms() > SHOOT_MS) {
-                    retractFeeder();
-                    Turret.turretLock = true;
-                    follower.followPath(shoot1ToIntake1, true);
-                    runIntake();
-                    pathTimer.resetTimer();
-                    setPathState(3);
-                }
-                break;
+                // Shoot 1 = preloaded
+                new FollowPath(goalTo1Shoot),
+                shootArtifacts(),
 
-            // ── Row 1 intake → Shoot Zone 2 ──────────────────────────────
-            case 3:
-                if (!follower.isBusy()) {
-                    follower.followPath(intake1To2Shoot, true);
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(4);
-                }
-                break;
+                // Intake row 1 -> Shoot 2
+                Intake.INSTANCE.On,
+                new FollowPath(shoot1ToIntake1),
+                Intake.INSTANCE.Off,
+                new FollowPath(intake1To2Shoot),
+                shootArtifacts(),
 
-            case 4: // Wait for shoot zone 2
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(5);
-                }
-                break;
+                // Intake row 2 -> Shoot 3
+                Intake.INSTANCE.On,
+                new FollowPath(shoot2ToIntake2),
+                Intake.INSTANCE.Off,
+                new FollowPath(intake2To3Shoot),
+                shootArtifacts(),
 
-            // ── Shoot 2 ───────────────────────────────────────────────────
-            case 5:
-                feedBalls();
-                if (ms() > SHOOT_MS) {
-                    retractFeeder();
-                    Turret.turretLock = true;
-                    follower.followPath(shoot2ToIntake2, true);
-                    runIntake();
-                    pathTimer.resetTimer();
-                    setPathState(6);
-                }
-                break;
+                // Gate intake 1 -> Shoot 4
+                Intake.INSTANCE.On,
+                new FollowPath(shoot3ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo4Shoot),
+                shootArtifacts(),
 
-            // ── Row 2 intake → Shoot Zone 3 ──────────────────────────────
-            case 6:
-                if (!follower.isBusy()) {
-                    follower.followPath(intake2To3Shoot, true);
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(7);
-                }
-                break;
+                // Gate intake 2 -> Shoot 5
+                Intake.INSTANCE.On,
+                new FollowPath(shoot4ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo5Shoot),
+                shootArtifacts(),
 
-            case 7: // Wait for shoot zone 3
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(8);
-                }
-                break;
+                // Gate intake 3 -> Shoot 6
+                Intake.INSTANCE.On,
+                new FollowPath(shoot5ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo6Shoot),
+                shootArtifacts(),
 
-            // ── Shoot 3 ───────────────────────────────────────────────────
-            case 8:
-                feedBalls();
-                if (ms() > SHOOT_MS) {
-                    retractFeeder();
-                    Turret.turretLock = true;
-                    follower.followPath(shoot3ToGate, true);
-                    runIntake();
-                    pathTimer.resetTimer();
-                    setPathState(9);
-                }
-                break;
+                // Gate intake 4 -> Shoot 7
+                Intake.INSTANCE.On,
+                new FollowPath(shoot6ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo7Shoot),
+                shootArtifacts(),
 
-            // ── Gate arrival 1 ────────────────────────────────────────────
-            case 9:
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(10);
-                }
-                break;
-
-            case 10: // Gate dwell 1
-                if (ms() > GATE_INTAKE_MS) {
-                    follower.followPath(gate1Cycle, true); // gate→shoot4→gate
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(11);
-                }
-                break;
-
-            case 11: // Driving to shoot 4 (first half of gate1Cycle)
-                // PathChain: follower.isBusy() stays true until BOTH paths finish.
-                // We need to fire when at the shoot pose — roughly when 50% done.
-                // Use a simpler approach: check proximity or just wait for chain end.
-                // The chain goes gate→shoot4→gate, so we fire mid-chain.
-                // Better: split into individual paths and handle shoot in separate state.
-                // Since gate1Cycle goes shoot→gate, follower.isBusy() = false at gate.
-                // Shoot happens at the turnaround. We track it via a sub-flag here:
-                if (!follower.isBusy()) {
-                    // We're back at the gate after shoot4
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(12);
-                }
-                // NOTE: Feeder fires continuously during the shoot segment.
-                // Because PathChain pauses for heading settle at shoot4 position,
-                // the turret will aim and fire while the follower holds position.
-                feedBalls(); // feeds entire time; retract handled in state 12
-                break;
-
-            case 12: // Gate dwell 2 + retract feeder
-                retractFeeder();
-                Turret.turretLock = true;
-                runIntake();
-                if (ms() > GATE_INTAKE_MS) {
-                    follower.followPath(gate2Cycle, true);
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(13);
-                }
-                break;
-
-            case 13: // gate2Cycle: gate→shoot5→gate
-                feedBalls();
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    retractFeeder();
-                    pathTimer.resetTimer();
-                    setPathState(14);
-                }
-                break;
-
-            case 14: // Gate dwell 3
-                Turret.turretLock = true;
-                runIntake();
-                if (ms() > GATE_INTAKE_MS) {
-                    follower.followPath(gate3Cycle, true);
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(15);
-                }
-                break;
-
-            case 15: // gate3Cycle: gate→shoot6→gate
-                feedBalls();
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    retractFeeder();
-                    pathTimer.resetTimer();
-                    setPathState(16);
-                }
-                break;
-
-            // ── Gate dwell 4 → Shoot 7 (final) ───────────────────────────
-            case 16:
-                Turret.turretLock = true;
-                runIntake();
-                if (ms() > GATE_INTAKE_MS) {
-                    follower.followPath(gateTo7Shoot, true);
-                    Turret.turretLock = false;
-                    pathTimer.resetTimer();
-                    setPathState(17);
-                }
-                break;
-
-            case 17: // Wait for shoot zone 7
-                if (!follower.isBusy()) {
-                    stopIntake();
-                    pathTimer.resetTimer();
-                    setPathState(18);
-                }
-                break;
-
-            // ── Final shoot ───────────────────────────────────────────────
-            case 18:
-                feedBalls();
-                if (ms() > SHOOT_MS) {
-                    retractFeeder();
-                    stopShooter();
-                    Turret.turretLock = true;
-                    setPathState(19);
-                }
-                break;
-
-            case 19:
-                telemetry.addLine("★  AUTO COMPLETE — 21 Balls  ★");
-                break;
-        }
+                Shooter.INSTANCE.Off,
+                Turret.INSTANCE.disableTracking
+        );
     }
 
-    
-    private void buildPaths() {
-
-        // 1 ── Start → Shoot Zone 1
-        goalTo1Shoot = new Path(new BezierLine(
-            p(18.226, 119.443),
-            p(46.748,  91.826)
-        ));
-        goalTo1Shoot.setLinearHeadingInterpolation(rad(90), rad(134));
-
-        // 2 ── Shoot Zone 1 → 1st Row Intake  [REVERSED, with curve]
-        shoot1ToIntake1 = new Path(new BezierCurve(
-            p(46.748, 91.826),
-            p(50.017, 82.670),   // control point from JSON
-            p(24.661, 84.365)
-        ));
-        shoot1ToIntake1.setLinearHeadingInterpolation(rad(134), rad(180));
-        shoot1ToIntake1.setReversed(true);
-
-        // 3 ── 1st Row Intake → Shoot Zone 2
-        intake1To2Shoot = new Path(new BezierLine(
-            p(24.661, 84.365),
-            p(47.365, 83.635)
-        ));
-        intake1To2Shoot.setLinearHeadingInterpolation(rad(180), rad(130));
-
-        // 4 ── Shoot Zone 2 → 2nd Row Intake  [with curve]
-        shoot2ToIntake2 = new Path(new BezierCurve(
-            p(47.365, 83.635),
-            p(58.204, 59.678),   // control point from JSON
-            p(24.209, 59.478)
-        ));
-        shoot2ToIntake2.setLinearHeadingInterpolation(rad(130), rad(160));
-
-        // 5 ── 2nd Row Intake → Shoot Zone 3
-        intake2To3Shoot = new Path(new BezierLine(
-            p(24.209, 59.478),
-            p(46.504, 84.113)
-        ));
-        intake2To3Shoot.setLinearHeadingInterpolation(rad(160), rad(130));
-
-        // 6 ── Shoot Zone 3 → Gate
-        shoot3ToGate = new Path(new BezierLine(
-            p(46.504, 84.113),
-            p(13.122, 61.991)
-        ));
-        shoot3ToGate.setLinearHeadingInterpolation(rad(130), rad(160));
-
-        // ── Gate cycles (PathChain: goes gate→shoot→gate in one follow call)
-        gate1Cycle = follower.pathBuilder()
-            .addPath(new BezierLine(p(13.122, 61.991), p(41.704, 90.339)))
-            .setLinearHeadingInterpolation(rad(160), rad(130))
-            .addPath(new BezierLine(p(41.704, 90.339), p(13.452, 62.009)))
-            .setLinearHeadingInterpolation(rad(130), rad(160))
-            .build();
-
-        gate2Cycle = follower.pathBuilder()
-            .addPath(new BezierLine(p(13.452, 62.009), p(41.565, 89.826)))
-            .setLinearHeadingInterpolation(rad(160), rad(130))
-            .addPath(new BezierLine(p(41.565, 89.826), p(13.235, 62.157)))
-            .setLinearHeadingInterpolation(rad(130), rad(160))
-            .build();
-
-        gate3Cycle = follower.pathBuilder()
-            .addPath(new BezierLine(p(13.235, 62.157), p(42.043, 90.191)))
-            .setLinearHeadingInterpolation(rad(160), rad(130))
-            .addPath(new BezierLine(p(42.043, 90.191), p(13.357, 62.191)))
-            .setLinearHeadingInterpolation(rad(130), rad(160))
-            .build();
-
-        // Final leg: last gate → shoot zone 7
-        gateTo7Shoot = new Path(new BezierLine(
-            p(13.357, 62.191),
-            p(41.713, 90.348)
-        ));
-        gateTo7Shoot.setLinearHeadingInterpolation(rad(160), rad(130));
+    @Override
+    public void onUpdate() {
+        panelsTelemetry.debug("X", follower().getPose().getX());
+        panelsTelemetry.debug("Y", follower().getPose().getY());
+        panelsTelemetry.debug("Heading", follower().getPose().getHeading());
+        panelsTelemetry.update(telemetry);
     }
 
-    
-    private void initHardware() {
-        try { intakeMotor  = hardwareMap.dcMotor.get(INTAKE_NAME);  } catch (Exception ignored) {}
-        try { shooterMotor = hardwareMap.dcMotor.get(SHOOTER_NAME); } catch (Exception ignored) {}
-        try {
-            feederServo = hardwareMap.servo.get(FEEDER_NAME);
-            feederServo.setPosition(FEEDER_RETRACT);
-        } catch (Exception ignored) {}
+   
+    public void buildPaths() {
+
+        // 1
+        goalTo1Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(18.226, 119.443),
+                        new Pose(46.748, 91.826)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(134))
+                .build();
+
+        // 2 
+        shoot1ToIntake1 = follower().pathBuilder()
+                .addPath(new BezierCurve(
+                        new Pose(46.748, 91.826),
+                        new Pose(50.017, 82.670),
+                        new Pose(24.661, 84.365)
+                ))
+                .setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        // 3 
+        intake1To2Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(24.661, 84.365),
+                        new Pose(47.365, 83.635)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 4
+        shoot2ToIntake2 = follower().pathBuilder()
+                .addPath(new BezierCurve(
+                        new Pose(47.365, 83.635),
+                        new Pose(58.204, 59.678),
+                        new Pose(24.209, 59.478)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 5
+        intake2To3Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(24.209, 59.478),
+                        new Pose(46.504, 84.113)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 6 
+        shoot3ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(46.504, 84.113),
+                        new Pose(13.122, 61.991)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 7 
+        gateTo4Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.122, 61.991),
+                        new Pose(41.704, 90.339)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 8
+        shoot4ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(41.704, 90.339),
+                        new Pose(13.452, 62.009)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 9 
+        gateTo5Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.452, 62.009),
+                        new Pose(41.565, 89.826)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 10 
+        shoot5ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(41.565, 89.826),
+                        new Pose(13.235, 62.157)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 11 
+        gateTo6Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.235, 62.157),
+                        new Pose(42.043, 90.191)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 12
+        shoot6ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(42.043, 90.191),
+                        new Pose(13.357, 62.191)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 13 
+        gateTo7Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.357, 62.191),
+                        new Pose(41.713, 90.348)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
     }
-
-    private void runIntake()     { if (intakeMotor  != null) intakeMotor.setPower(1.0);  }
-    private void stopIntake()    { if (intakeMotor  != null) intakeMotor.setPower(0.0);  }
-    private void startShooter()  { if (shooterMotor != null) shooterMotor.setPower(1.0); }
-    private void stopShooter()   { if (shooterMotor != null) shooterMotor.setPower(0.0); }
-    private void feedBalls()     { if (feederServo  != null) feederServo.setPosition(FEEDER_FIRE);    }
-    private void retractFeeder() { if (feederServo  != null) feederServo.setPosition(FEEDER_RETRACT); }
-
-    /** Elapsed ms since last pathTimer.resetTimer() */
-    private double ms() { return pathTimer.getElapsedTimeSeconds() * 1000; }
-
-
-    /** Build a Point, mirroring X for red alliance (field is 144" wide). */
-    private Point p(double x, double y) {
-        double fx = (ALLIANCE == Alliance.RED) ? (144.0 - x) : x;
-        return new Point(fx, y, Point.CARTESIAN);
-    }
-
-    /** Degrees → radians, reflected for red alliance. */
-    private double rad(double deg) {
-        double d = (ALLIANCE == Alliance.RED) ? (180.0 - deg) : deg;
-        return Math.toRadians(d);
-    }
-
-    private void setPathState(int s) { pathState = s; }
 }
