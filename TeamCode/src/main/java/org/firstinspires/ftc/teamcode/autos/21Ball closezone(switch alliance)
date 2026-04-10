@@ -1,0 +1,295 @@
+package org.firstinspires.ftc.teamcode.autos;
+
+
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitGate;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitShoot;
+import static dev.nextftc.extensions.pedro.PedroComponent.follower;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.TelemetryManager;
+import com.bylazar.telemetry.PanelsTelemetry;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.follower.Follower;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.geometry.Pose;
+
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.delays.Delay;
+import dev.nextftc.core.commands.groups.ParallelGroup;
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.components.SubsystemComponent;
+import dev.nextftc.extensions.pedro.FollowPath;
+import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.NextFTCOpMode;
+
+@Autonomous(name = "21 Ball Auto", group = "Autonomous")
+@Configurable
+public class Auto21Ball extends NextFTCOpMode {
+
+    Auto21Ball() {
+        addComponents(
+                new SubsystemComponent(
+                        Turret.INSTANCE,
+                        Shooter.INSTANCE,
+                        Intake.INSTANCE
+                ),
+                new PedroComponent(Constants::createFollower)
+        );
+    }
+
+    private TelemetryManager panelsTelemetry;
+    public Follower follower;
+    private int pathState;
+    private ElapsedTime autoTimer = new ElapsedTime();
+
+
+    public PathChain goalTo1Shoot;
+    public PathChain shoot1ToIntake1;
+    public PathChain intake1To2Shoot;
+    public PathChain shoot2ToIntake2;
+    public PathChain intake2To3Shoot;
+    public PathChain shoot3ToGate;
+    public PathChain gateTo4Shoot;
+    public PathChain shoot4ToGate;
+    public PathChain gateTo5Shoot;
+    public PathChain shoot5ToGate;
+    public PathChain gateTo6Shoot;
+    public PathChain shoot6ToGate;
+    public PathChain gateTo7Shoot;
+
+    @Override
+    public void onInit() {
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        buildPaths();
+        follower().setStartingPose(new Pose(18.226, 119.443, Math.toRadians(90)));
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);
+        pathState = 0;
+    }
+
+    // no this? 
+    @Override
+    public void onStartButtonPressed() {
+        autonomousRoutine().schedule();
+    }
+
+   
+    public Command shootArtifacts() {
+        return new SequentialGroup(
+                new SequentialGroup(
+                        Shooter.INSTANCE.openGate,
+                        new Delay(waitGate),
+                        Intake.INSTANCE.On,
+                        new Delay(waitShoot)
+                ),
+                new ParallelGroup(
+                        Shooter.INSTANCE.closeGate,
+                        Intake.INSTANCE.Off
+                )
+        );
+    }
+
+    
+    public Command autonomousRoutine() {
+        return new SequentialGroup(
+
+                // Turret on and flywheel spun up before first move
+                Turret.INSTANCE.enableTracking,
+                Shooter.INSTANCE.On,
+
+                // Shoot 1 = preloaded
+                new FollowPath(goalTo1Shoot),
+                shootArtifacts(),
+
+                // Intake row 1 -> Shoot 2
+                Intake.INSTANCE.On,
+                new FollowPath(shoot1ToIntake1),
+                Intake.INSTANCE.Off,
+                new FollowPath(intake1To2Shoot),
+                shootArtifacts(),
+
+                // Intake row 2 -> Shoot 3
+                Intake.INSTANCE.On,
+                new FollowPath(shoot2ToIntake2),
+                Intake.INSTANCE.Off,
+                new FollowPath(intake2To3Shoot),
+                shootArtifacts(),
+
+                // Gate intake 1 -> Shoot 4
+                Intake.INSTANCE.On,
+                new FollowPath(shoot3ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo4Shoot),
+                shootArtifacts(),
+
+                // Gate intake 2 -> Shoot 5
+                Intake.INSTANCE.On,
+                new FollowPath(shoot4ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo5Shoot),
+                shootArtifacts(),
+
+                // Gate intake 3 -> Shoot 6
+                Intake.INSTANCE.On,
+                new FollowPath(shoot5ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo6Shoot),
+                shootArtifacts(),
+
+                // Gate intake 4 -> Shoot 7
+                Intake.INSTANCE.On,
+                new FollowPath(shoot6ToGate),
+                new Delay(waitGate),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateTo7Shoot),
+                shootArtifacts(),
+
+                Shooter.INSTANCE.Off,
+                Turret.INSTANCE.disableTracking
+        );
+    }
+
+    @Override
+    public void onUpdate() {
+        panelsTelemetry.debug("X", follower().getPose().getX());
+        panelsTelemetry.debug("Y", follower().getPose().getY());
+        panelsTelemetry.debug("Heading", follower().getPose().getHeading());
+        panelsTelemetry.update(telemetry);
+    }
+
+   
+    public void buildPaths() {
+
+        // 1
+        goalTo1Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(18.226, 119.443),
+                        new Pose(46.748, 91.826)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(134))
+                .build();
+
+        // 2 
+        shoot1ToIntake1 = follower().pathBuilder()
+                .addPath(new BezierCurve(
+                        new Pose(46.748, 91.826),
+                        new Pose(50.017, 82.670),
+                        new Pose(24.661, 84.365)
+                ))
+                .setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        // 3 
+        intake1To2Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(24.661, 84.365),
+                        new Pose(47.365, 83.635)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 4
+        shoot2ToIntake2 = follower().pathBuilder()
+                .addPath(new BezierCurve(
+                        new Pose(47.365, 83.635),
+                        new Pose(58.204, 59.678),
+                        new Pose(24.209, 59.478)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 5
+        intake2To3Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(24.209, 59.478),
+                        new Pose(46.504, 84.113)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 6 
+        shoot3ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(46.504, 84.113),
+                        new Pose(13.122, 61.991)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 7 
+        gateTo4Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.122, 61.991),
+                        new Pose(41.704, 90.339)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 8
+        shoot4ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(41.704, 90.339),
+                        new Pose(13.452, 62.009)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 9 
+        gateTo5Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.452, 62.009),
+                        new Pose(41.565, 89.826)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 10 
+        shoot5ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(41.565, 89.826),
+                        new Pose(13.235, 62.157)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 11 
+        gateTo6Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.235, 62.157),
+                        new Pose(42.043, 90.191)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+
+        // 12
+        shoot6ToGate = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(42.043, 90.191),
+                        new Pose(13.357, 62.191)
+                ))
+                .setTangentHeadingInterpolation()
+                .build();
+
+        // 13 
+        gateTo7Shoot = follower().pathBuilder()
+                .addPath(new BezierLine(
+                        new Pose(13.357, 62.191),
+                        new Pose(41.713, 90.348)
+                ))
+                .setConstantHeadingInterpolation(Math.toRadians(130))
+                .build();
+    }
+}
