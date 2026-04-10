@@ -1,17 +1,16 @@
 package org.firstinspires.ftc.teamcode.autos.paths;
 
 
-import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitGate;
-import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitShoot;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
 import static dev.nextftc.extensions.pedro.PedroComponent.follower;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
 import com.bylazar.telemetry.PanelsTelemetry;
-import com.qualcomm.robotcore.util.ElapsedTime;
 
 
+import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
@@ -24,20 +23,19 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
 import dev.nextftc.extensions.pedro.FollowPath;
 import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.NextFTCOpMode;
 
 
-@Autonomous(name = "Pedro Pathing Blue 18 Ball", group = "Autonomous")
+@Autonomous(name = "Pedro Pathing Blue 18 Ball Optimised", group = "Autonomous")
 @Configurable // Panels
-public class CloseZone18 extends NextFTCOpMode {
-
-    public CloseZone18() {
+public class closeZone21 extends NextFTCOpMode {
+    public closeZone21() {
         addComponents(
                 new SubsystemComponent(
                         Turret.INSTANCE,
@@ -52,20 +50,18 @@ public class CloseZone18 extends NextFTCOpMode {
 
     @Override
     public void onInit() {
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+        buildPaths();
+        follower().setStartingPose(new Pose(18.129825124338204, 120.01719878068347, Math.toRadians(144)));
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);
+    }
+
+    @Override
+    public void onStartButtonPressed(){
         Shooter.INSTANCE.closeGate.schedule();
         Shooter.INSTANCE.Off.schedule();
         Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
-
-        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
-        buildPaths();
-        follower().setStartingPose(new Pose(23.44347826086957, 126.74782608695654, Math.toRadians(144)));
-        panelsTelemetry.debug("Status", "Initialized");
-        panelsTelemetry.update(telemetry);
-
-
-    }
-    @Override
-    public void onStartButtonPressed(){
         autonomousRoutine().run();
     }
 
@@ -78,9 +74,9 @@ public class CloseZone18 extends NextFTCOpMode {
                 shootArtifacts(),
 
                 Intake.INSTANCE.On,
-                new FollowPath(intakeMiddleSpike),
+                new FollowPath(middleSpike),
                 Intake.INSTANCE.Off,
-                new FollowPath(shootMiddleSpiike),
+                new FollowPath(middleScore),
                 shootArtifacts(),
 
 
@@ -106,10 +102,10 @@ public class CloseZone18 extends NextFTCOpMode {
                 shootArtifacts(),
 
                 Intake.INSTANCE.On,
-                new FollowPath(intakeTopSpike),
+                new FollowPath(topSpike),
                 Intake.INSTANCE.Off,
 
-                new FollowPath(shootTopSpike),
+                new FollowPath(spikeScore),
                 shootArtifacts()
         );
     }
@@ -122,6 +118,13 @@ public class CloseZone18 extends NextFTCOpMode {
         panelsTelemetry.debug("Y", follower().getPose().getY());
         panelsTelemetry.debug("Heading", follower().getPose().getHeading());
         panelsTelemetry.update(telemetry);
+    }
+
+    @Override
+    public void onStop(){
+        mainConstants.autoEndPose = follower().getPose();
+        ActiveOpMode.telemetry().addData("End pose X",mainConstants.autoEndPose.getX());
+        ActiveOpMode.telemetry().addData("End pose Y",mainConstants.autoEndPose.getY());
     }
 
     public Command shootArtifacts(){
@@ -139,21 +142,22 @@ public class CloseZone18 extends NextFTCOpMode {
     }
 
     public PathChain shootPreload;
-    public PathChain intakeMiddleSpike;
-    public PathChain shootMiddleSpiike;
+    public PathChain middleSpike;
+    public PathChain middleScore;
     public PathChain gateIntake1;
     public PathChain gateScore1;
     public PathChain gateIntake2;
     public PathChain gateScore2;
     public PathChain gateIntake3;
     public PathChain gateScore3;
-    public PathChain intakeTopSpike;
-    public PathChain shootTopSpike;
+    public PathChain topSpike;
+    public PathChain spikeScore;
+
 
     public void buildPaths() {
         shootPreload = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(23.443, 126.748),
+                                new Pose(18.130, 120.017),
 
                                 new Pose(50.087, 95.583)
                         )
@@ -161,7 +165,7 @@ public class CloseZone18 extends NextFTCOpMode {
 
                 .build();
 
-        intakeMiddleSpike = follower().pathBuilder().addPath(
+        middleSpike = follower().pathBuilder().addPath(
                         new BezierCurve(
                                 new Pose(50.087, 95.583),
                                 new Pose(54.609, 81.861),
@@ -169,14 +173,13 @@ public class CloseZone18 extends NextFTCOpMode {
                                 new Pose(24.870, 60.365)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(134), Math.toRadians(180))
-                .setReversed()
                 .build();
 
-        shootMiddleSpiike = follower().pathBuilder().addPath(
+        middleScore = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(24.870, 60.365),
 
-                                new Pose(58.426, 75.913)
+                                new Pose(57.363, 79.810)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(130))
 
@@ -184,9 +187,9 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateIntake1 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(58.426, 75.913),
+                                new Pose(57.363, 79.810),
 
-                                new Pose(13.565, 60.730)
+                                new Pose(11.440, 62.147)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(130), Math.toRadians(160))
 
@@ -194,9 +197,9 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateScore1 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(13.565, 60.730),
+                                new Pose(11.440, 62.147),
 
-                                new Pose(55.896, 77.435)
+                                new Pose(57.136, 80.269)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(130))
 
@@ -204,9 +207,9 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateIntake2 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(55.896, 77.435),
+                                new Pose(57.136, 80.269),
 
-                                new Pose(13.330, 61.157)
+                                new Pose(11.382, 61.865)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(130), Math.toRadians(160))
 
@@ -214,9 +217,9 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateScore2 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(13.330, 61.157),
+                                new Pose(11.382, 61.865),
 
-                                new Pose(55.896, 77.400)
+                                new Pose(56.781, 79.171)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(130))
 
@@ -224,9 +227,9 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateIntake3 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(55.896, 77.400),
+                                new Pose(56.781, 79.171),
 
-                                new Pose(13.452, 61.174)
+                                new Pose(11.858, 62.591)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(130), Math.toRadians(160))
 
@@ -234,17 +237,17 @@ public class CloseZone18 extends NextFTCOpMode {
 
         gateScore3 = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(13.452, 61.174),
+                                new Pose(11.858, 62.591),
 
-                                new Pose(56.174, 77.304)
+                                new Pose(57.414, 80.315)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(160), Math.toRadians(130))
 
                 .build();
 
-        intakeTopSpike = follower().pathBuilder().addPath(
+        topSpike = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(56.174, 77.304),
+                                new Pose(57.414, 80.315),
 
                                 new Pose(24.087, 83.443)
                         )
@@ -252,11 +255,11 @@ public class CloseZone18 extends NextFTCOpMode {
 
                 .build();
 
-        shootTopSpike = follower().pathBuilder().addPath(
+        spikeScore = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(24.087, 83.443),
 
-                                new Pose(37.452, 96.661)
+                                new Pose(40.030, 99.542)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(130))
 

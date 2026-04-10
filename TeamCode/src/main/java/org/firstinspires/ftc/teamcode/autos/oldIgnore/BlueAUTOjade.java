@@ -1,8 +1,8 @@
-package org.firstinspires.ftc.teamcode.autos;
+package org.firstinspires.ftc.teamcode.autos.oldIgnore;
 
 
-import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitGate;
-import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitShoot;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitShoot;
+import static org.firstinspires.ftc.teamcode.oldFTC.PIDTest.waitGate;
 import static dev.nextftc.extensions.pedro.PedroComponent.follower;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
