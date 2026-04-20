@@ -276,7 +276,85 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
 
     public void buildRedPaths(){
-        //ADD MIRRORED PATHS!
+        bottomSpike = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(87.402, 7.598),
+
+                                new Pose(102.827, 35.373)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(0))
+
+                .build();
+
+        Path8 = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(102.827, 35.373),
+
+                                new Pose(124.871, 35.620)
+                        )
+                ).setTangentHeadingInterpolation()
+
+                .build();
+
+        scoreBottom = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(124.871, 35.620),
+
+                                new Pose(83.672, 11.328)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        startToIntake = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(83.672, 11.328),
+
+                                new Pose(129.133, 10.910)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+
+                .build();
+
+        farZoneScore = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(129.133, 10.910),
+
+                                new Pose(83.672, 11.328)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        cornerIntake = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(83.672, 11.328),
+
+                                new Pose(128.805, 10.786)
+                        )
+                ).setTangentHeadingInterpolation()
+
+                .build();
+
+        openGate = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(128.805, 10.786),
+
+                                new Pose(132.972, 64.720)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(35))
+
+                .build();
+
+        scoreGate = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(132.972, 64.720),
+
+                                new Pose(83.672, 11.328)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(35), Math.toRadians(40))
+
+                .build();
     }
 }
 
