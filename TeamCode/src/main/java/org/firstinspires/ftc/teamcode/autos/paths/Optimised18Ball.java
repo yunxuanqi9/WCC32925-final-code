@@ -1,0 +1,344 @@
+package org.firstinspires.ftc.teamcode.autos.paths;
+
+
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitToKick;
+import static dev.nextftc.extensions.pedro.PedroComponent.follower;
+
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.bylazar.configurables.annotations.Configurable;
+import com.bylazar.telemetry.TelemetryManager;
+import com.bylazar.telemetry.PanelsTelemetry;
+
+
+import org.firstinspires.ftc.teamcode.robotConstants.Drawing;
+import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
+import org.firstinspires.ftc.teamcode.subsystems.Intake;
+import org.firstinspires.ftc.teamcode.subsystems.Shooter;
+import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.geometry.Pose;
+
+import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.groups.ParallelGroup;
+
+import dev.nextftc.core.commands.groups.SequentialGroup;
+import dev.nextftc.core.commands.utility.InstantCommand;
+import dev.nextftc.core.components.SubsystemComponent;
+import dev.nextftc.extensions.pedro.FollowPath;
+import dev.nextftc.extensions.pedro.PedroComponent;
+import dev.nextftc.ftc.ActiveOpMode;
+import dev.nextftc.ftc.NextFTCOpMode;
+
+
+@Autonomous(name = "Pedro Pathing 18 Ball Optimised", group = "Autonomous")
+@Configurable // Panels
+public abstract class Optimised18Ball extends NextFTCOpMode {
+    protected final boolean redTeam;
+    public Optimised18Ball(Boolean redTeam) {
+        addComponents(
+                new SubsystemComponent(
+                        Turret.INSTANCE,
+                        Intake.INSTANCE,
+                        Shooter.INSTANCE
+                ),
+                new PedroComponent(Constants::createFollower)
+        );
+        this.redTeam = redTeam;
+        mainConstants.redTeam = redTeam;
+    }
+    private TelemetryManager panelsTelemetry; // Panels Telemetry instance
+    private Pose startingPose = new Pose(19.192555751644484, 119.84007700946573, Math.toRadians(144));
+    private Pose openGatePose = mainConstants.gateIntake;
+    private Pose scoringPose = new Pose(65.1, 78.2);
+    
+    @Override
+    public void onInit() {
+        mainConstants.setAlliance(redTeam);
+        Shooter.INSTANCE.Off.schedule();
+
+        panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
+
+        if (redTeam) {
+            startingPose = startingPose.mirror(); // MIRRORS POSE!!!!
+            scoringPose = scoringPose.mirror();
+            buildRedPaths();
+
+        } else {
+            buildBluePaths();
+        }
+
+        follower().setStartingPose(startingPose);
+
+        panelsTelemetry.debug("Status", "Initialized");
+        panelsTelemetry.update(telemetry);
+    }
+
+    @Override
+    public void onStartButtonPressed() {
+        Shooter.INSTANCE.Init.schedule();
+        Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
+        autonomousRoutine().run();
+    }
+
+    public Command autonomousRoutine() {
+        return new SequentialGroup(
+                Shooter.INSTANCE.On,
+                //MIDDLE SPIKE MUST GO FIRST!
+
+                new FollowPath(shootPreload),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new InstantCommand(() -> follower().setMaxPower(0.7)),
+                new FollowPath(middleSpike),
+                Intake.INSTANCE.Off,
+                new InstantCommand(() -> follower().setMaxPower(1)),
+                new FollowPath(scoreMiddle),
+                shootArtifacts(),
+
+                //CAN REPEAT AS MANY AS YOU'D LIKE.
+                Intake.INSTANCE.On,
+                new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(gateScore),
+                shootArtifacts(),
+
+                //TOP SPIKE MUST GO AT THE END!
+                Intake.INSTANCE.On,
+                new InstantCommand(() -> follower().setMaxPower(0.7)),
+                new FollowPath(topSpike),
+                Intake.INSTANCE.Off,
+                new InstantCommand(() -> follower().setMaxPower(1)),
+                new FollowPath(scoreTop),
+                shootArtifacts()
+        );
+    }
+
+    @Override
+    public void onUpdate() {
+        // Log values to Panels and Driver Station
+
+        Pose robotPose = follower().getPose();
+
+        //Constantly edits
+
+        if (robotPose.getX() != 0 && robotPose.getY() != 0 && robotPose.getHeading() != 0) {
+            mainConstants.autoEndX = robotPose.getX();
+            mainConstants.autoEndY = robotPose.getY();
+            mainConstants.autoEndHeading = robotPose.getHeading();
+        }
+
+        panelsTelemetry.debug("X", follower().getPose().getX());
+        panelsTelemetry.debug("Y", follower().getPose().getY());
+        panelsTelemetry.debug("Heading", follower().getPose().getHeading());
+
+        panelsTelemetry.debug("MainconstantsRed?", mainConstants.redTeam);
+        panelsTelemetry.debug("this.Red?", this.redTeam);
+        panelsTelemetry.update(telemetry);
+
+        drawOnlyCurrent();
+    }
+
+    @Override
+    public void onStop() {
+        mainConstants.autoEndPose = follower().getPose();
+        ActiveOpMode.telemetry().addData("End pose X", mainConstants.autoEndPose.getX());
+        ActiveOpMode.telemetry().addData("End pose Y", mainConstants.autoEndPose.getY());
+    }
+
+    public Command shootArtifacts() {
+        return new ParallelGroup(
+                new SequentialGroup(
+                        Shooter.INSTANCE.openGate.thenWait(waitGate),
+                        Shooter.INSTANCE.closeGate
+                ),
+                new SequentialGroup(
+                        Intake.INSTANCE.On.thenWait(waitToKick),
+                        Shooter.INSTANCE.Kick,
+                        Intake.INSTANCE.Off
+                )
+        );
+    }
+
+    public PathChain shootPreload;
+    public PathChain goToMiddle;
+    public PathChain middleSpike;
+    public PathChain scoreMiddle;
+    public PathChain openGate;
+    public PathChain gateScore;
+    public PathChain topSpike;
+    public PathChain scoreTop;
+
+    public void buildBluePaths() {
+        shootPreload = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(18.661, 119.840),
+
+                                new Pose(61.441, 78.793)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(230))
+
+                .build();
+
+        middleSpike = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(61.441, 78.793),
+                                new Pose(51.573, 59.935),
+                                new Pose(16.855, 60.377)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(230), Math.toRadians(180))
+
+                .build();
+
+        scoreMiddle = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(16.855, 60.377),
+
+                                new Pose(54.827, 81.742)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        openGate = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(54.827, 81.742),
+                                new Pose(36.059, 56.168),
+                                openGatePose
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(210), openGatePose.getHeading())
+
+                .build();
+
+        gateScore = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                openGatePose,
+                                new Pose(21.244, 57.449),
+                                new Pose(54.827, 81.742)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        topSpike = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(54.827, 81.742),
+
+                                new Pose(15.578, 85.040)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
+
+                .build();
+
+        scoreTop = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(15.578, 85.040),
+
+                                new Pose(36.229, 101.403)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+    }
+
+    public void buildRedPaths() {
+        shootPreload = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(125.339, 119.840),
+
+                                new Pose(82.559, 78.793)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(36), Math.toRadians(-50))
+
+                .build();
+
+        middleSpike = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(82.559, 78.793),
+                                new Pose(92.427, 59.935),
+                                new Pose(127.145, 60.377)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(-50), Math.toRadians(0))
+
+                .build();
+
+        scoreMiddle = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(127.145, 60.377),
+
+                                new Pose(89.173, 81.742)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        openGate = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                new Pose(89.173, 81.742),
+                                new Pose(107.941, 56.168),
+                                openGatePose
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(-30), openGatePose.getHeading())
+
+                .build();
+
+        gateScore = follower().pathBuilder().addPath(
+                        new BezierCurve(
+                                openGatePose,
+                                new Pose(122.756, 57.449),
+                                new Pose(89.173, 81.742)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
+        topSpike = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(89.173, 81.742),
+
+                                new Pose(128.422, 85.040)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
+
+                .build();
+
+        scoreTop = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(128.422, 85.040),
+
+                                new Pose(107.771, 101.403)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+    }
+
+    public static void drawOnlyCurrent() {
+        try {
+            Drawing.drawRobot(follower().getPose());
+            Drawing.sendPacket();
+        } catch (Exception e) {
+            throw new RuntimeException("Drawing failed " + e);
+        }
+
+    }
+}
+

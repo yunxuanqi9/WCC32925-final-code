@@ -29,7 +29,7 @@ public class Intake implements Subsystem {
 
     private int Balls = 0;
 
-    public static double ballWait = 0.1;
+    public static double ballWait = 0.03;
 
     private Intake(){}
     public static final Intake INSTANCE = new Intake();
@@ -48,37 +48,6 @@ public class Intake implements Subsystem {
     public double currReading;
 
 
-    public Command preCheckBalls = new InstantCommand(() -> {
-        if(currReading > twoBallCurrent){
-            Balls = 2;
-        }
-        else if(currReading > threeBallCurrent){
-            Balls = 3;
-        }
-        else{
-            Balls = 0;
-        }
-    });
-
-    public Command checkBalls = new InstantCommand(() -> {
-        currReading = intakeMotor.getMotor().getCurrent(CurrentUnit.AMPS);
-        if(currReading > twoBallCurrent && Balls == 2){
-            RGB.setPosition(0.7);
-        }
-        else if(currReading > threeBallCurrent && Balls == 2){
-            RGB.setPosition(0.6);
-        }
-        else{
-            RGB.setPosition(0.4);
-        }
-    });
-
-    public Command detectBalls = new SequentialGroup(
-            preCheckBalls.afterTime(0.1).thenWait(ballWait),
-            checkBalls
-
-    );
-
 
     public Command Unclog = new SetPower(intakeMotor, -1);
 
@@ -86,17 +55,29 @@ public class Intake implements Subsystem {
 
     public Command On = new SetPower(intakeMotor,1);
 
+    public Command slowFire = new SetPower(intakeMotor,0.7);
 
     public Command Off = new SetPower(intakeMotor, 0);
+
+
+    public Command checkBalls = new InstantCommand(() -> {
+        if(intakeMotor.getMotor().isOverCurrent()){
+            RGB.setPosition(0.7);
+        }
+        else{
+            RGB.setPosition(0.4);
+        }
+    }).afterTime(0.02);
+
 
     public Command intakeArtifacts =
             new ParallelGroup(
                     On,
-                    detectBalls
+                    checkBalls  
             );
 
-    public void On() {
-        intakeMotor.setPower(1);
+    public void initialize(){
+        intakeMotor.getMotor().setCurrentAlert(8,CurrentUnit.AMPS);
     }
 
     @Override

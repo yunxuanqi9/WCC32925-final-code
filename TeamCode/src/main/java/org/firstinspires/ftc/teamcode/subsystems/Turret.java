@@ -61,8 +61,6 @@ public class Turret implements Subsystem {
 
     public Command enableTracking = new InstantCommand(() -> {
         turretLock = false;
-        goalPose = mainConstants.goalPose;
-        //updates goalPose to correct team!
     });
     public Command disableTracking = new InstantCommand(() -> turretLock = true);
 
@@ -70,12 +68,10 @@ public class Turret implements Subsystem {
         return new InstantCommand(() -> turretMotor.setCurrentPosition(pos));
     }
 
-    public static Pose goalPose = new Pose(0,144);
-
     public double turretDegrees;
     public double goalLocation;
 
-    public double calculateTurretPosition(){
+    public double calculateTurretPosition(Pose goalPose){
         Pose robotPose = PedroComponent.follower().getPose();
         double rawDelta = (Math.atan2(
                 goalPose.getY()- robotPose.getY(),
@@ -88,11 +84,13 @@ public class Turret implements Subsystem {
     }
 
 
+
+
     public double flightTime(){
         return 1;
     }
 
-    public double calcSOTMTurretPosition(){
+    public double calcSOTMTurretPosition(Pose goalPose){
         Pose robotPose = PedroComponent.follower().getPose();
 
         double flightTime = flighttimelut.get(robotPose.distanceFrom(goalPose));
@@ -114,16 +112,13 @@ public class Turret implements Subsystem {
 
 
     public void initialize(){
-        turretMotor.zero();
+        turretLock = true;
 
-        //updates goalPose
-        goalPose = mainConstants.goalPose;
-        //backup
-
-        if(mainConstants.redTeam){
-            goalPose.mirror();
+        if(mainConstants.autoEndX == 0 && mainConstants.autoEndY == 0 && mainConstants.autoEndHeading == 0){
+            turretMotor.zero();
         }
 
+        //backup
         flighttimelut = new InterpLUT()
         {{
             //REPLACE WITH ACTUAL DATA
@@ -139,10 +134,10 @@ public class Turret implements Subsystem {
         double targetPos;
 
         if(SOTM){
-            targetPos = calcSOTMTurretPosition();
+            targetPos = calcSOTMTurretPosition(mainConstants.goalPose);
         }
         else{
-            targetPos = calculateTurretPosition();
+            targetPos = calculateTurretPosition(mainConstants.goalPose);
         }
 
         //SOTM?
@@ -163,8 +158,8 @@ public class Turret implements Subsystem {
         ActiveOpMode.telemetry().addData("turret degrees",turretDegrees);
         ActiveOpMode.telemetry().addData("goal location",goalLocation);
 
-        ActiveOpMode.telemetry().addData("Goal pose X",goalPose.getX());
-        ActiveOpMode.telemetry().addData("Goal pose Y",goalPose.getY());
+        ActiveOpMode.telemetry().addData("Goal pose X",mainConstants.goalPose.getX());
+        ActiveOpMode.telemetry().addData("Goal pose Y",mainConstants.goalPose.getY());
 
     }
 

@@ -7,6 +7,7 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
@@ -28,7 +29,7 @@ import dev.nextftc.ftc.components.BulkReadComponent;
 import dev.nextftc.hardware.driving.DriverControlledCommand;
 
 @Configurable
-@TeleOp(name = "NextFTC Main TeleOp")
+@TeleOp(name = "NextFTC Tuning TeleOp")
 public class tunerTeleOp extends NextFTCOpMode {
 
     private ControlSystem headingPIDF;
@@ -147,7 +148,6 @@ public class tunerTeleOp extends NextFTCOpMode {
                 .whenBecomesFalse(() -> headingLock = false);
 
         Gamepads.gamepad1().square()
-                .toggleOnBecomesTrue()
                 .whenBecomesTrue(
                         new ParallelGroup(
                                 Shooter.INSTANCE.Off,
@@ -159,13 +159,26 @@ public class tunerTeleOp extends NextFTCOpMode {
                 .whenBecomesFalse(
                         new ParallelGroup(
                                 Intake.INSTANCE.Off,
-                                Shooter.INSTANCE.UnclogOff
+                                Shooter.INSTANCE.UnclogOff,
+                                Shooter.INSTANCE.closeGate
                         )
                 );
 
         Gamepads.gamepad1().rightTrigger().atLeast(0.3)
                 .whenBecomesTrue(Intake.INSTANCE.intakeArtifacts)
                 .whenBecomesFalse(Intake.INSTANCE.Off);
+
+        Gamepads.gamepad1().rightBumper()
+                //For much easier shooter testing.
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(new SequentialGroup(
+                        Shooter.INSTANCE.openGate,
+                        Intake.INSTANCE.On
+                ))
+                .whenBecomesFalse(new ParallelGroup(
+                        Shooter.INSTANCE.closeGate,
+                        Intake.INSTANCE.Off
+                ));
 
         Gamepads.gamepad1().leftTrigger().atLeast(0.4)
                 .whenBecomesTrue(shootArtifacts()
@@ -209,6 +222,9 @@ public class tunerTeleOp extends NextFTCOpMode {
     public void onStop(){
         Shooter.INSTANCE.closeGate.schedule();
 
+        mainConstants.autoEndX = 0;
+        mainConstants.autoEndY = 0;
+        mainConstants.autoEndHeading = 0;
 
     }
 }

@@ -1,21 +1,30 @@
 package org.firstinspires.ftc.teamcode.autos.paths;
 
+
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitToKick;
 import static dev.nextftc.extensions.pedro.PedroComponent.follower;
 
-import com.bylazar.telemetry.PanelsTelemetry;
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.telemetry.TelemetryManager;
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.bylazar.telemetry.PanelsTelemetry;
 
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
 import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
+import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+
+
+import com.pedropathing.geometry.BezierCurve;
+import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.paths.PathChain;
+import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
@@ -24,8 +33,14 @@ import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.NextFTCOpMode;
 
-public class farZone21 extends NextFTCOpMode {
-    public farZone21() {
+
+@Autonomous(name = "Pedro far Zone spike", group = "Autonomous")
+@Configurable // Panels
+public abstract class farZoneSpike extends NextFTCOpMode {
+
+    protected final boolean redTeam;
+
+    public farZoneSpike(Boolean redTeam) {
         addComponents(
                 new SubsystemComponent(
                         Turret.INSTANCE,
@@ -34,21 +49,24 @@ public class farZone21 extends NextFTCOpMode {
                 ),
                 new PedroComponent(Constants::createFollower)
         );
+        this.redTeam = redTeam;
+        mainConstants.redTeam = redTeam;
     }
 
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
 
-    private Pose startingPose = new Pose(56.42047168297771, 8.86635648965186, Math.toRadians(144));
+    private Pose startingPose = new Pose(56.597593454195426, 0, Math.toRadians(90));
+    private Pose openGatePose = mainConstants.gateIntake;
 
     @Override
     public void onInit() {
-        Shooter.INSTANCE.initShooter.schedule();
-
+        mainConstants.setAlliance(redTeam);
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
 
-        if(mainConstants.redTeam){
+        if(redTeam){
             buildRedPaths();
             startingPose = startingPose.mirror(); // MIRRORS POSE!!!!
+            openGatePose = openGatePose.mirror();
         }
         else{
             buildBluePaths();
@@ -61,19 +79,55 @@ public class farZone21 extends NextFTCOpMode {
 
     @Override
     public void onStartButtonPressed(){
-        Shooter.INSTANCE.closeGate.schedule();
-        Shooter.INSTANCE.Off.schedule();
+        Shooter.INSTANCE.Init.schedule();
         Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
-
         autonomousRoutine().run();
     }
 
+    @Override
+    public void onUpdate() {
+        // Log values to Panels and Driver Station
+
+        Pose robotPose = follower().getPose();
+
+        //Constantly edits
+
+        if(robotPose.getX() != 0 && robotPose.getY() != 0 && robotPose.getHeading()!=0){
+            mainConstants.autoEndX = robotPose.getX();
+            mainConstants.autoEndY = robotPose.getY();
+            mainConstants.autoEndHeading = robotPose.getHeading();
+        }
+
+        panelsTelemetry.debug("X", follower().getPose().getX());
+        panelsTelemetry.debug("Y", follower().getPose().getY());
+        panelsTelemetry.debug("Heading", follower().getPose().getHeading());
+
+        panelsTelemetry.debug("MainconstantsRed?", mainConstants.redTeam);
+        panelsTelemetry.debug("this.Red?", this.redTeam);
+        panelsTelemetry.update(telemetry);
+    }
+
+    @Override
+    public void onStop(){
+        mainConstants.autoEndPose = follower().getPose();
+        ActiveOpMode.telemetry().addData("End pose X",mainConstants.autoEndPose.getX());
+        ActiveOpMode.telemetry().addData("End pose Y",mainConstants.autoEndPose.getY());
+    }
 
     public Command autonomousRoutine() {
         return new SequentialGroup(
-                Shooter.INSTANCE.On,
+                Shooter.INSTANCE.On.thenWait(8),
 
                 shootArtifacts(),
+
+
+                Intake.INSTANCE.On,
+                new FollowPath(bottomSpike),
+                new FollowPath(Path8),
+                Intake.INSTANCE.Off,
+                new FollowPath(scoreBottom),
+                shootArtifacts(),
+
 
                 Intake.INSTANCE.On,
                 new FollowPath(startToIntake),
@@ -91,7 +145,6 @@ public class farZone21 extends NextFTCOpMode {
                 //Intake from Gate and score.
                 Intake.INSTANCE.On,
                 new FollowPath(openGate),
-                new FollowPath(gateIntake),
                 Intake.INSTANCE.Off,
                 new FollowPath(scoreGate),
                 shootArtifacts(),
@@ -115,24 +168,6 @@ public class farZone21 extends NextFTCOpMode {
                 shootArtifacts()
         );
     }
-
-
-    @Override
-    public void onUpdate() {
-        // Log values to Panels and Driver Station
-        panelsTelemetry.debug("X", follower().getPose().getX());
-        panelsTelemetry.debug("Y", follower().getPose().getY());
-        panelsTelemetry.debug("Heading", follower().getPose().getHeading());
-        panelsTelemetry.update(telemetry);
-    }
-
-    @Override
-    public void onStop(){
-        mainConstants.autoEndPose = follower().getPose();
-        ActiveOpMode.telemetry().addData("End pose X",mainConstants.autoEndPose.getX());
-        ActiveOpMode.telemetry().addData("End pose Y",mainConstants.autoEndPose.getY());
-    }
-
     public Command shootArtifacts(){
         return new ParallelGroup(
                 new SequentialGroup(
@@ -140,26 +175,59 @@ public class farZone21 extends NextFTCOpMode {
                         Shooter.INSTANCE.closeGate
                 ),
                 new SequentialGroup(
-                        Intake.INSTANCE.Nudge.thenWait(0.1),
-                        Intake.INSTANCE.On.thenWait(1),
+                        Intake.INSTANCE.On.thenWait(waitToKick),
+                        Shooter.INSTANCE.Kick,
                         Intake.INSTANCE.Off
                 )
         );
     }
 
+
+    public PathChain bottomSpike;
+    public PathChain Path8;
+    public PathChain scoreBottom;
     public PathChain startToIntake;
     public PathChain farZoneScore;
     public PathChain cornerIntake;
     public PathChain openGate;
-    public PathChain gateIntake;
     public PathChain scoreGate;
 
     public void buildBluePaths() {
+        bottomSpike = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(56.598, 7.598),
+
+                                new Pose(41.173, 35.373)
+                        )
+                ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(180))
+
+                .build();
+
+        Path8 = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(41.173, 35.373),
+
+                                new Pose(19.129, 35.620)
+                        )
+                ).setTangentHeadingInterpolation()
+
+                .build();
+
+        scoreBottom = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(19.129, 35.620),
+
+                                new Pose(60.328, 11.328)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
+                .build();
+
         startToIntake = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(56.420, 8.866),
+                                new Pose(60.328, 11.328),
 
-                                new Pose(8.137, 10.910)
+                                new Pose(14.867, 10.910)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
@@ -167,7 +235,7 @@ public class farZone21 extends NextFTCOpMode {
 
         farZoneScore = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(8.137, 10.910),
+                                new Pose(14.867, 10.910),
 
                                 new Pose(60.328, 11.328)
                         )
@@ -179,7 +247,7 @@ public class farZone21 extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(60.328, 11.328),
 
-                                new Pose(7.756, 11.494)
+                                new Pose(15.195, 10.786)
                         )
                 ).setTangentHeadingInterpolation()
 
@@ -189,34 +257,27 @@ public class farZone21 extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(15.195, 10.786),
 
-                                new Pose(11.461, 60.863)
+                                openGatePose
                         )
-                ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(145))
-
-                .build();
-
-        gateIntake = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(11.461, 60.863),
-
-                                new Pose(12.679, 46.118)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(145), Math.toRadians(145))
+                ).setLinearHeadingInterpolation(Math.toRadians(90), openGatePose.getHeading())
 
                 .build();
 
         scoreGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(12.679, 46.118),
+                                openGatePose,
 
                                 new Pose(60.328, 11.328)
                         )
-                ).setTangentHeadingInterpolation()
-                .setReversed()
+                ).setLinearHeadingInterpolation(openGatePose.getHeading(), Math.toRadians(140))
+
                 .build();
     }
+
 
     public void buildRedPaths(){
         //ADD MIRRORED PATHS!
     }
 }
+
+

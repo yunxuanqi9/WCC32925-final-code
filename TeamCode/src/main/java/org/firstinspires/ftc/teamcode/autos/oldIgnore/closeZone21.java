@@ -1,7 +1,8 @@
-package org.firstinspires.ftc.teamcode.autos.paths;
+package org.firstinspires.ftc.teamcode.autos.oldIgnore;
 
 
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
+import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitToKick;
 import static dev.nextftc.extensions.pedro.PedroComponent.follower;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
@@ -21,6 +22,7 @@ import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import dev.nextftc.core.commands.Command;
 import dev.nextftc.core.commands.groups.ParallelGroup;
@@ -31,8 +33,8 @@ import dev.nextftc.extensions.pedro.PedroComponent;
 import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.NextFTCOpMode;
 
-
-@Autonomous(name = "Pedro Pathing Blue 18 Ball Optimised", group = "Autonomous")
+@Disabled
+@Autonomous(name = "Pedro Pathing Blue 21 Ball Close Zone", group = "Autonomous")
 @Configurable // Panels
 public class closeZone21 extends NextFTCOpMode {
     public closeZone21() {
@@ -47,12 +49,15 @@ public class closeZone21 extends NextFTCOpMode {
     }
 
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
+    private Pose startingPose = new Pose(18.661, 119.486, Math.toRadians(144));
+
 
     @Override
     public void onInit() {
         panelsTelemetry = PanelsTelemetry.INSTANCE.getTelemetry();
         buildPaths();
-        follower().setStartingPose(new Pose(18.129825124338204, 120.01719878068347, Math.toRadians(144)));
+        follower().setStartingPose(startingPose);
+
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
     }
@@ -60,7 +65,6 @@ public class closeZone21 extends NextFTCOpMode {
     @Override
     public void onStartButtonPressed(){
         Shooter.INSTANCE.closeGate.schedule();
-        Shooter.INSTANCE.Off.schedule();
         Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
         autonomousRoutine().run();
     }
@@ -134,8 +138,8 @@ public class closeZone21 extends NextFTCOpMode {
                         Shooter.INSTANCE.closeGate
                 ),
                 new SequentialGroup(
-                        Intake.INSTANCE.Nudge.thenWait(0.1),
-                        Intake.INSTANCE.On.thenWait(1),
+                        Intake.INSTANCE.On.thenWait(waitToKick),
+                        Shooter.INSTANCE.Kick,
                         Intake.INSTANCE.Off
                 )
         );
@@ -157,8 +161,7 @@ public class closeZone21 extends NextFTCOpMode {
     public void buildPaths() {
         shootPreload = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(18.130, 120.017),
-
+                                startingPose,
                                 new Pose(50.087, 95.583)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(134))

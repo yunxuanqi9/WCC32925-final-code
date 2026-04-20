@@ -1,5 +1,9 @@
 package org.firstinspires.ftc.teamcode.nextFTCTeleOps;
 
+import static org.firstinspires.ftc.teamcode.pedroPathing.Tuning.follower;
+
+import android.graphics.drawable.Drawable;
+
 import com.bylazar.configurables.annotations.Configurable;
 import com.bylazar.gamepad.GamepadManager;
 import com.bylazar.gamepad.PanelsGamepad;
@@ -7,6 +11,8 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+import org.firstinspires.ftc.teamcode.robotConstants.Drawing;
+import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
 import org.firstinspires.ftc.teamcode.subsystems.Turret;
@@ -35,14 +41,13 @@ public class mainTeleOp extends NextFTCOpMode {
 
     DriverControlledCommand driverControlled;
 
-
     public static Pose startingPose =
             //new Pose(8.11,7.598,Math.toRadians(90));
-            new Pose(72,72,Math.toRadians(90));
+            new Pose(72, 72, Math.toRadians(90));
 
     public static double waitGate = 1;
-    public static double waitShoot = 2;
-    public static double waitToKick =  0.6;
+    public static double waitShoot = 1.2;
+    public static double waitToKick = 0.5;
 
     public boolean triggerRapidFire = false;
     DcMotor frontLeftMotor;
@@ -52,7 +57,6 @@ public class mainTeleOp extends NextFTCOpMode {
 
     public static boolean headingLock = false;
 
-    double gateHeading = Math.toRadians(145);
 
     GamepadEx panelsGamePad;
 
@@ -73,7 +77,7 @@ public class mainTeleOp extends NextFTCOpMode {
         );
     }
 
-    public Command shootArtifacts(){
+    public Command shootArtifacts() {
         return new ParallelGroup(
                 new SequentialGroup(
                         Shooter.INSTANCE.openGate.thenWait(waitGate),
@@ -87,38 +91,37 @@ public class mainTeleOp extends NextFTCOpMode {
         );
     }
 
-    @Override public void onWaitForStart(){
+    @Override
+    public void onWaitForStart() {
     }
 
-    @Override public void onInit() {
+    @Override
+    public void onInit() {
+
+        if (mainConstants.autoEndX != 0 && mainConstants.autoEndY != 0 && mainConstants.autoEndHeading != 0) {
+            startingPose = new Pose(mainConstants.autoEndX, mainConstants.autoEndY, mainConstants.autoEndHeading);
+        }
+
         PedroComponent.follower().setPose(startingPose);
-
-
-        /*frontLeftMotor = hardwareMap.dcMotor.get("frontLeft");
-        backLeftMotor = hardwareMap.dcMotor.get("backLeft");
-        frontRightMotor = hardwareMap.dcMotor.get("frontRight");
-        backRightMotor = hardwareMap.dcMotor.get("backRight");
-        frontLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);
-        backLeftMotor.setDirection(DcMotorSimple.Direction.REVERSE);*/
 
         headingPIDF = ControlSystem.builder()
                 .posPid(1, 0, 0.04)
                 .basicFF(0, 0, 0.025)
                 .build();
 
-        headingPIDF.setGoal(new KineticState(gateHeading));
+        headingPIDF.setGoal(new KineticState(mainConstants.gateHeading));
     }
 
     @Override
     public void onStartButtonPressed() {
+
         driverControlled = new PedroDriverControlled(
                 Gamepads.gamepad1().leftStickY().negate(),
                 Gamepads.gamepad1().leftStickX().negate(),
                 () -> {
-                    if(headingLock){
+                    if (headingLock) {
                         return headingPIDF.calculate(new KineticState(PedroComponent.follower().getHeading()));
-                    }
-                    else{
+                    } else {
                         return (double) gamepad1.right_stick_x * -1;
                     }
                 },
@@ -126,7 +129,6 @@ public class mainTeleOp extends NextFTCOpMode {
         );
 
         Shooter.INSTANCE.closeGate.schedule();
-        //Shooter.INSTANCE.On.schedule(); // KSHITJ SAID SHOOTER DIDN'T WORK WITHOUT THIS?
         Shooter.INSTANCE.Off.schedule();
 
         Turret.INSTANCE.enableTracking.schedule();
@@ -147,7 +149,6 @@ public class mainTeleOp extends NextFTCOpMode {
 
         Gamepads.gamepad1().square()
                 //UNCLOGGING FEATURE!!
-                .toggleOnBecomesTrue()
                 .whenBecomesTrue(
                         new ParallelGroup(
                                 Shooter.INSTANCE.Off,
@@ -159,7 +160,8 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesFalse(
                         new ParallelGroup(
                                 Intake.INSTANCE.Off,
-                                Shooter.INSTANCE.UnclogOff
+                                Shooter.INSTANCE.UnclogOff,
+                                Shooter.INSTANCE.closeGate
                         )
                 );
 
@@ -171,6 +173,40 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(shootArtifacts()
                 );
 
+        Gamepads.gamepad1().ps()
+                .and(Gamepads.gamepad1().dpadLeft()).whenBecomesTrue(() -> {
+                            PedroComponent.follower().setPose(new Pose(72, 72, Math.toRadians(90)));
+                            //middle facing up
+                        }
+                )
+                .and(Gamepads.gamepad1().dpadUp()   ).whenBecomesTrue(() -> {
+                    //bottom left corner.
+                    PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90)));
+                }
+                )
+                .and(Gamepads.gamepad1().dpadRight())
+                .whenBecomesTrue(() -> {
+                    //bottom right corner facing top
+                    PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90)).mirror());
+                })
+                .and(Gamepads.gamepad1().cross())
+                .whenBecomesTrue(() -> {
+                            //bottom right corner facing top
+                            if (mainConstants.redTeam) {
+                                //Set to RED goal corner.
+                                PedroComponent.follower().setPose(new Pose(18.661190437991344, 119.48583346703032, Math.toRadians(144)
+                                ).mirror());
+                            } else {
+                                //Set to BLUE goal corner.
+                                PedroComponent.follower().setPose(new Pose(18.661190437991344, 119.48583346703032, Math.toRadians(144)
+                                ));
+                            }
+
+                        }
+
+                );
+
+
         Gamepads.gamepad1().options()
                 .toggleOnBecomesTrue()
                 .whenBecomesTrue(Turret.INSTANCE.disableTracking)
@@ -178,39 +214,50 @@ public class mainTeleOp extends NextFTCOpMode {
 
         Gamepads.gamepad1().share()
                 .toggleOnBecomesTrue()
-                .whenBecomesTrue(Shooter.INSTANCE.enableVelo)
-                .whenBecomesFalse(Shooter.INSTANCE.disableVelo);
-
+                .whenBecomesTrue(Shooter.INSTANCE.disableVelo)
+                .whenBecomesFalse(Shooter.INSTANCE.enableVelo);
 
         Gamepads.gamepad1().dpadUp()
-                .whenBecomesFalse(Shooter.INSTANCE.increaseSpeedOffset);
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.increaseSpeedOffset);
 
         Gamepads.gamepad1().dpadDown()
-                .whenBecomesFalse(Shooter.INSTANCE.decreaseSpeedOffset);
-
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseSpeedOffset);
 
         Gamepads.gamepad1().dpadLeft()
-                .whenBecomesFalse(Shooter.INSTANCE.increaseAngleOffset);
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.increaseAngleOffset);
 
         Gamepads.gamepad1().dpadRight()
-                .whenBecomesFalse(Shooter.INSTANCE.decreaseAngleOffset);
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseAngleOffset);
 
         driverControlled.schedule();
     }
+
     @Override
-    public void onUpdate(){
-
+    public void onUpdate() {
         telemetry.update();
-        telemetry.addData("x",PedroComponent.follower().getPose().getX());
-        telemetry.addData("Y",PedroComponent.follower().getPose().getY());
-        telemetry.addData("Heading",Math.toDegrees(PedroComponent.follower().getPose().getHeading()));
-        telemetry.addData("headinglock",headingLock);
+        telemetry.addData("x", PedroComponent.follower().getPose().getX());
+        telemetry.addData("Y", PedroComponent.follower().getPose().getY());
+        telemetry.addData("Heading", Math.toDegrees(PedroComponent.follower().getPose().getHeading()));
+        telemetry.addData("headinglock", headingLock);
+        telemetry.addData("Red?", mainConstants.redTeam);
 
+        drawOnlyCurrent();
     }
 
-    public void onStop(){
+    public void onStop() {
         Shooter.INSTANCE.closeGate.schedule();
+    }
 
+    public static void drawOnlyCurrent(){
+        try{
+            Drawing.drawRobot(PedroComponent.follower().getPose());
+            Drawing.sendPacket();
+        } catch (Exception e){
+            throw new RuntimeException("Drawing failed" + e);
+        }
+    }
 
+    public static void draw() {
+        Drawing.drawDebug(PedroComponent.follower());
     }
 }

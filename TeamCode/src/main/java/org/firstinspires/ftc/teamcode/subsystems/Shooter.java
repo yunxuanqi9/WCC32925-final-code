@@ -11,6 +11,7 @@ import dev.nextftc.control.KineticState;
 import dev.nextftc.control.feedback.PIDCoefficients;
 import dev.nextftc.control.feedforward.BasicFeedforwardParameters;
 import dev.nextftc.core.commands.Command;
+import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.commands.utility.InstantCommand;
 import dev.nextftc.core.subsystems.Subsystem;
@@ -31,26 +32,28 @@ public class Shooter implements Subsystem {
     public static double fixedSpeed;
 
     public static double setHood = 0; // CHANGE IN PANELS
-    public static double maxHoodPose = 0.65;
+    public static double maxHoodPose = 0.85;
 
     public static double kickerOn = 0.8;
-    public static double kickerOff = 0.65;
+    public static double kickerOff = 0.35;
     public static double kickerWait = 0.5;
 
-    public static Pose goalPose = mainConstants.goalPose;;
 
     double PPR = 145.1; // 1150 motor
     double TURRET_LIMIT = 180;
 
-    boolean veloLock = false;
+    boolean veloLock = true;
     boolean unclogging = false;
 
     public static double minHoodAngle = 30;
     public static double maxHoodAngle = 50;
     public static double currHoodAngle = minHoodAngle;
 
-    public static PIDCoefficients flywheelCoefficients = new PIDCoefficients(0.026,0,0.00007);
-    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.0007,0,0.0002);
+    public static PIDCoefficients closeZonePIDCoefficients = new PIDCoefficients(0.003,0,0);
+
+    public static PIDCoefficients farPIDCoefficients = new PIDCoefficients(0.04,0,0.00007);
+
+    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.00045,0,0.0001);
 
     //ALWAYS DECLARE BEFORE INSTANCE!
 
@@ -82,8 +85,13 @@ public class Shooter implements Subsystem {
     public static double closePos = 0.1;
     public static double openPos = 0.3;
 
-    ControlSystem FlywheelController = ControlSystem.builder()
-            .velPid(flywheelCoefficients)
+    ControlSystem closeFlywheelController = ControlSystem.builder()
+            .velPid(closeZonePIDCoefficients)
+            .basicFF(flywheelFFCoefficients)
+            .build();
+
+    ControlSystem farFlywheelController = ControlSystem.builder()
+            .velPid(farPIDCoefficients)
             .basicFF(flywheelFFCoefficients)
             .build();
 
@@ -93,6 +101,7 @@ public class Shooter implements Subsystem {
 
     public final Command On = new InstantCommand(() -> {
         flywheelOn = true;
+        unclogging = false;
     });
     public final Command Off = new InstantCommand(() -> flywheelOn = false);
 
@@ -119,6 +128,7 @@ public class Shooter implements Subsystem {
     public Command enableVelo = new InstantCommand(() -> {
         veloLock = false;
     });
+
     public Command disableVelo = new InstantCommand(() -> {
         veloLock = true;
         shooterOffset = 0;
@@ -126,13 +136,20 @@ public class Shooter implements Subsystem {
         //RESETS!
     });
 
+    public Command Init = new ParallelGroup(
+            enableVelo,
+            closeGate,
+            Off
+    );
+
 
     //Tuning Commands
 
-    public Command setSpeedLow = new InstantCommand(() -> currSpeed += 50);
-    public Command setSpeedHigh = new InstantCommand(() -> currSpeed -= 50);
+    public Command setSpeedHigh = new InstantCommand(() -> currSpeed += 50);
+    public Command setSpeedLow = new InstantCommand(() -> currSpeed -= 50);
 
-    public Command increaseAngle = new InstantCommand(() -> setHood = Math.min(0.65, setHood+0.1));
+
+    public Command increaseAngle = new InstantCommand(() -> setHood = Math.min(maxHoodPose, setHood+0.1));
     public Command decreaseAngle = new InstantCommand(() -> setHood = Math.max(0, setHood-0.1));
 
 
@@ -141,81 +158,80 @@ public class Shooter implements Subsystem {
     public Command increaseSpeedOffset = new InstantCommand(() -> shooterOffset += 50);
     public Command decreaseSpeedOffset = new InstantCommand(() -> shooterOffset -= 50);
 
-    public Command increaseAngleOffset = new InstantCommand(() -> hoodOffset = Math.min(0.65, hoodOffset+0.1));
-    public Command decreaseAngleOffset = new InstantCommand(() -> hoodOffset = Math.max(0, hoodOffset-0.1));
+    public Command increaseAngleOffset = new InstantCommand(() -> hoodOffset = hoodOffset+0.1);
+    public Command decreaseAngleOffset = new InstantCommand(() -> hoodOffset = hoodOffset-0.1);
 
 
     public final Command UnclogOn = new InstantCommand(() -> unclogging = true);
-    public final Command UnclogOff = new InstantCommand(() -> unclogging = true);
+    public final Command UnclogOff = new InstantCommand(() -> unclogging = false);
 
     //Fin
 
-    public Command initShooter = new InstantCommand(()->{
-        goalPose = mainConstants.goalPose;
-    });
-
     @Override
     public void initialize(){
-
-        Kicker.setPosition(kickerOff);
-
+        Shooter.INSTANCE.Off.schedule();
         openGate.thenWait(0.1).then(closeGate).schedule();
 
         //Adding each val with a key
         hoodlut = new InterpLUT()
         {{
-            add(56,0.3);
-            add(71,0);
-            add(100, 0);
-            add(144, 0.25);
+            add(36.4, 0);
+            add(39, 0.04);
+            add(48, 0.34);
+            add(52.9, 0.34);
+            add(66.6, 0.39);
+            add(67.6, 0.39);
+            add(85, 0.3);
+            add(91, 0.29);
+            add(121, 0.45);
+            add(134, 0.47);
 
         }};
 
         velolut = new InterpLUT()
         {{
-            add(56, 780);
-            add(71, 780);
-            add(101, 780);
-            add(110, 850 );
-            add(120, 1075);
-            add(144, 1080);
+            add(36.4, 980);
+            add(39, 1030);
+            add(48, 1080);
+            add(52.9, 1080);
+            add(66.6, 1160);
+            add(67.6, 1160 );
+            add(85, 1160 );
+            add(91, 1160 );
+            add(121, 1330);
+            add(134, 1340);
+
         }};
 //generating final equation
         velolut.createLUT();
         hoodlut.createLUT();
-
-
-        if(mainConstants.redTeam){
-            goalPose.mirror();
-        }
-
     }
 
     @Override
     public void periodic() {
         //Kicker.setPosition(KickerOn);
 
+
         Pose robotPose = PedroComponent.follower().getPose();
 
-        double distance = robotPose.distanceFrom(goalPose);
+        double distance = robotPose.distanceFrom(mainConstants.goalPose);
 
         if(!veloLock){
             currSpeed = velolut.get(distance);
             setHood  = hoodlut.get(distance);
         }
 
-        FlywheelController.setGoal(new KineticState(0,currSpeed + shooterOffset,0));
-        Hood.setPosition(Math.max(Math.min(0.65, setHood + hoodOffset),0)); // CLAMPING
+        closeFlywheelController.setGoal(new KineticState(0,currSpeed + shooterOffset,0));
+        Hood.setPosition(Math.max(Math.min(maxHoodPose, setHood + hoodOffset),0)); // CLAMPING
 
 
         double power = 0;
         if (flywheelOn) {
-                power = FlywheelController.calculate(shooterMotors.getState());
-                shooterMotors.setPower(power);
-
-            }
+            power = closeFlywheelController.calculate(shooterMotors.getState());
+            shooterMotors.setPower(power);
+        }
         else if(unclogging) {
-                shooterMotors.setPower(-1);
+                shooterMotors.setPower(-0.7);
         }
         else{
             shooterMotors.setPower(0);
