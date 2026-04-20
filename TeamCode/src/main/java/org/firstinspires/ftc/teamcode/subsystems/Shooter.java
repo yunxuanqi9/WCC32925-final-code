@@ -49,11 +49,11 @@ public class Shooter implements Subsystem {
     public static double maxHoodAngle = 50;
     public static double currHoodAngle = minHoodAngle;
 
-    public static PIDCoefficients closeZonePIDCoefficients = new PIDCoefficients(0.003,0,0);
+    public static PIDCoefficients closeZonePIDCoefficients = new PIDCoefficients(0.007,0,0);
 
     public static PIDCoefficients farPIDCoefficients = new PIDCoefficients(0.04,0,0.00007);
 
-    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.00045,0,0.0001);
+    public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.00045,0,0.0004);
 
     //ALWAYS DECLARE BEFORE INSTANCE!
 
@@ -175,16 +175,14 @@ public class Shooter implements Subsystem {
         //Adding each val with a key
         hoodlut = new InterpLUT()
         {{
-            add(36.4, 0);
             add(39, 0.04);
             add(48, 0.34);
             add(52.9, 0.34);
-            add(66.6, 0.39);
-            add(67.6, 0.39);
+            add(70.9, 0.4);
             add(85, 0.3);
             add(91, 0.29);
             add(121, 0.45);
-            add(134, 0.47);
+            add(134, 0.85);
 
         }};
 
@@ -196,10 +194,11 @@ public class Shooter implements Subsystem {
             add(52.9, 1080);
             add(66.6, 1160);
             add(67.6, 1160 );
+            add(70.9, 1200 );
             add(85, 1160 );
             add(91, 1160 );
             add(121, 1330);
-            add(134, 1340);
+            add(132, 1400);
 
         }};
 //generating final equation

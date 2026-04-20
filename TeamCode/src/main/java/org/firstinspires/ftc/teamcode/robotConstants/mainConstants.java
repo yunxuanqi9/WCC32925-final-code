@@ -14,11 +14,11 @@ public class mainConstants {
         redTeam = isRed;
     }
 
-    public static double waitGateIntake = 0.2;
+    public static double waitGateIntake = 0.6;
     public static double holdGate = 1;
 
     public static Pose autoEndPose;
-    public static Pose gateIntake = new Pose(11.028, 62.042, Math.toRadians(145));
+    public static Pose gateIntake = new Pose(11.028, 60.5, Math.toRadians(145));
 
     public static double autoEndX = 0;
     public static double autoEndY = 0;
@@ -37,9 +37,19 @@ public class mainConstants {
         autoEndPose = pose;
     }
 
-    public static Pose blueGoalPose = new Pose(5,133);
+    public static Pose blueGoalPose = new Pose(3,135);
     public static Pose redGoalPose = blueGoalPose.mirror();
     public static Pose goalPose = blueGoalPose;
+    public static double goalOffsetX = 0;
+    public static double goalOffsetY = 0;
+
+    public static void increaseGoalOffsetX(double increment){
+        goalOffsetX += increment;
+    }
+
+    public static void increaseGoalOffsetY(double increment){
+        goalOffsetY += increment;
+    }
 
 
     public static void setAlliance(boolean isRed){

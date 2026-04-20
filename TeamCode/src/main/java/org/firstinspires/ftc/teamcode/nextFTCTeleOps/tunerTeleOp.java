@@ -191,8 +191,8 @@ public class tunerTeleOp extends NextFTCOpMode {
 
         Gamepads.gamepad1().share()
                 .toggleOnBecomesTrue()
-                .whenBecomesTrue(Shooter.INSTANCE.enableVelo)
-                .whenBecomesFalse(Shooter.INSTANCE.disableVelo);
+                .whenBecomesTrue(Shooter.INSTANCE.disableVelo)
+                .whenBecomesFalse(Shooter.INSTANCE.enableVelo);
 
         Gamepads.gamepad1().dpadUp()
                 .whenBecomesFalse(Shooter.INSTANCE.setSpeedHigh);

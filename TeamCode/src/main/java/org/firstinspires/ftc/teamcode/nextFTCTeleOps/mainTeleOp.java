@@ -47,7 +47,10 @@ public class mainTeleOp extends NextFTCOpMode {
 
     public static double waitGate = 1;
     public static double waitShoot = 1.2;
-    public static double waitToKick = 0.5;
+    public static double waitToKick = 0.4;
+
+    private static double goalOffsetX = 0;
+    private static double goalOffsetY = 0;
 
     public boolean triggerRapidFire = false;
     DcMotor frontLeftMotor;
@@ -173,24 +176,15 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(shootArtifacts()
                 );
 
-        Gamepads.gamepad1().ps()
-                .and(Gamepads.gamepad1().dpadLeft()).whenBecomesTrue(() -> {
-                            PedroComponent.follower().setPose(new Pose(72, 72, Math.toRadians(90)));
-                            //middle facing up
-                        }
-                )
-                .and(Gamepads.gamepad1().dpadUp()   ).whenBecomesTrue(() -> {
-                    //bottom left corner.
-                    PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90)));
-                }
-                )
-                .and(Gamepads.gamepad1().dpadRight())
-                .whenBecomesTrue(() -> {
+        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadUp()).whenBecomesTrue(() -> {
+                            PedroComponent.follower().setPose(new Pose(72, 72, Math.toRadians(90)));});
+        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadLeft())
+                .whenBecomesTrue(() -> PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90))));
+        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadRight()).whenBecomesTrue(() -> {
                     //bottom right corner facing top
                     PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90)).mirror());
-                })
-                .and(Gamepads.gamepad1().cross())
-                .whenBecomesTrue(() -> {
+                });
+        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().cross()).whenBecomesTrue(() -> {
                             //bottom right corner facing top
                             if (mainConstants.redTeam) {
                                 //Set to RED goal corner.
@@ -202,9 +196,7 @@ public class mainTeleOp extends NextFTCOpMode {
                                 ));
                             }
 
-                        }
-
-                );
+                        });
 
 
         Gamepads.gamepad1().options()
@@ -228,6 +220,18 @@ public class mainTeleOp extends NextFTCOpMode {
 
         Gamepads.gamepad1().dpadRight()
                 .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseAngleOffset);
+
+
+        //GAMEPAD2
+
+        Gamepads.gamepad2().dpadUp()
+                        .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetY(2));
+        Gamepads.gamepad2().dpadDown()
+                .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetY(-2));
+        Gamepads.gamepad2().dpadRight()
+                .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetX(+2));
+        Gamepads.gamepad2().dpadRight()
+                .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetX(-2));
 
         driverControlled.schedule();
     }

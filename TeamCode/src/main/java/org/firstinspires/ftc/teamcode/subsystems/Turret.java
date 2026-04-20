@@ -137,7 +137,7 @@ public class Turret implements Subsystem {
             targetPos = calcSOTMTurretPosition(mainConstants.goalPose);
         }
         else{
-            targetPos = calculateTurretPosition(mainConstants.goalPose);
+            targetPos = calculateTurretPosition(mainConstants.goalPose.plus(new Pose(mainConstants.goalOffsetX, mainConstants.goalOffsetY)));
         }
 
         //SOTM?
