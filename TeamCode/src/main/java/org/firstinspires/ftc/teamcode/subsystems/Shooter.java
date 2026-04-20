@@ -175,12 +175,12 @@ public class Shooter implements Subsystem {
         //Adding each val with a key
         hoodlut = new InterpLUT()
         {{
-            add(39, 0.04);
-            add(48, 0.34);
-            add(52.9, 0.34);
-            add(70.9, 0.4);
-            add(85, 0.3);
-            add(91, 0.29);
+            add(29, 0.4);
+            add(32, 0.55);
+            add(52, 0.75);
+            add(65, 0.55);
+            add(81, 0.8);
+            add(84, 0.85);
             add(121, 0.45);
             add(134, 0.85);
 
@@ -188,15 +188,12 @@ public class Shooter implements Subsystem {
 
         velolut = new InterpLUT()
         {{
-            add(36.4, 980);
-            add(39, 1030);
-            add(48, 1080);
-            add(52.9, 1080);
-            add(66.6, 1160);
-            add(67.6, 1160 );
-            add(70.9, 1200 );
-            add(85, 1160 );
-            add(91, 1160 );
+            add(29, 1050);
+            add(32, 1050);
+            add(52, 1100);
+            add(65, 1100);
+            add(81, 1200);
+            add(84, 1260);
             add(121, 1330);
             add(132, 1400);
 

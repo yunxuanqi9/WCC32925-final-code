@@ -14,11 +14,11 @@ public class mainConstants {
         redTeam = isRed;
     }
 
-    public static double waitGateIntake = 0.6;
+    public static double waitGateIntake = 0.7;
     public static double holdGate = 1;
 
     public static Pose autoEndPose;
-    public static Pose gateIntake = new Pose(11.028, 60.5, Math.toRadians(145));
+    public static Pose gateIntake = new Pose(11.028, 60.62287822878231, Math.toRadians(145));
 
     public static double autoEndX = 0;
     public static double autoEndY = 0;

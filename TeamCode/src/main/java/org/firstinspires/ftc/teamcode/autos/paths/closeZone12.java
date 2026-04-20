@@ -192,18 +192,19 @@ public abstract class closeZone12 extends NextFTCOpMode {
     public void buildBluePaths() {
         shootPreload = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(19.193, 119.840),
+                                new Pose(18.661, 119.486),
 
-                                new Pose(60.910, 80.741)
+                                new Pose(30.090, 107.487)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(230))
 
                 .build();
+
         middleSpike = follower().pathBuilder().addPath(
                         new BezierCurve(
-                                new Pose(60.910, 80.741),
+                                new Pose(30.090, 107.487),
                                 new Pose(61.871, 76.547),
-                                new Pose(44.134, 54.976),
+                                new Pose(36.872, 57.101),
                                 new Pose(20.929, 59.846)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(270), Math.toRadians(180))
@@ -224,7 +225,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(50.200, 84.200),
 
-                                new Pose(16.959, 65.997)
+                                new Pose(15.720, 66.351)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(210), Math.toRadians(180))
 
@@ -232,7 +233,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
 
         awayGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(16.959, 65.997),
+                                new Pose(15.720, 66.351),
 
                                 new Pose(26.520, 62.565)
                         )
@@ -244,7 +245,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(26.520, 62.565),
 
-                                new Pose(9.561, 57.734)
+                                new Pose(10.269, 57.911)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(210), Math.toRadians(180))
 
@@ -252,7 +253,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
 
         gateScore = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(9.561, 57.734),
+                                new Pose(10.269, 57.911),
 
                                 new Pose(50.200, 84.200)
                         )
@@ -264,7 +265,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(50.200, 84.200),
 
-                                new Pose(21.600, 83.800)
+                                new Pose(18.589, 83.800)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
@@ -272,7 +273,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
 
         scoreTop = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(21.600, 83.800),
+                                new Pose(18.589, 83.800),
 
                                 new Pose(36.229, 101.403)
                         )
@@ -282,75 +283,7 @@ public abstract class closeZone12 extends NextFTCOpMode {
     }
 
     public void buildRedPaths() {
-        shootPreload = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(125.339, 119.840),
-
-                                new Pose(82.559, 78.793)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(36), Math.toRadians(-50))
-
-                .build();
-
-        middleSpike = follower().pathBuilder().addPath(
-                        new BezierCurve(
-                                new Pose(82.559, 78.793),
-                                new Pose(92.427, 59.935),
-                                new Pose(127.145, 60.377)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(-50), Math.toRadians(0))
-
-                .build();
-
-        scoreMiddle = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(127.145, 60.377),
-
-                                new Pose(89.173, 81.742)
-                        )
-                ).setTangentHeadingInterpolation()
-                .setReversed()
-                .build();
-
-        openGate = follower().pathBuilder().addPath(
-                        new BezierCurve(
-                                new Pose(89.173, 81.742),
-                                new Pose(107.941, 56.168),
-                                new Pose(132.972, 62.042)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(-30), Math.toRadians(35))
-
-                .build();
-
-        gateScore = follower().pathBuilder().addPath(
-                        new BezierCurve(
-                                new Pose(132.972, 62.042),
-                                new Pose(122.756, 57.449),
-                                new Pose(89.173, 81.742)
-                        )
-                ).setTangentHeadingInterpolation()
-                .setReversed()
-                .build();
-
-        topSpike = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(89.173, 81.742),
-
-                                new Pose(128.422, 85.040)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
-
-                .build();
-
-        scoreTop = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(128.422, 85.040),
-
-                                new Pose(107.771, 101.403)
-                        )
-                ).setTangentHeadingInterpolation()
-                .setReversed()
-                .build();
+        
     }
 
     public static void drawOnlyCurrent() {

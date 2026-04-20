@@ -113,6 +113,10 @@ public class tunerTeleOp extends NextFTCOpMode {
 
     @Override
     public void onStartButtonPressed() {
+        Shooter.INSTANCE.Init.schedule();
+        Shooter.INSTANCE.disableVelo.schedule();
+
+
         driverControlled = new PedroDriverControlled(
                 Gamepads.gamepad1().leftStickY().negate(),
                 Gamepads.gamepad1().leftStickX().negate(),

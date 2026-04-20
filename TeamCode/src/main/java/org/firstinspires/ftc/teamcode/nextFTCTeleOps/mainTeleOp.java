@@ -39,6 +39,8 @@ public class mainTeleOp extends NextFTCOpMode {
 
     private ControlSystem headingPIDF;
 
+    public static double speed = 0.9;
+
     DriverControlledCommand driverControlled;
 
     public static Pose startingPose =
@@ -119,8 +121,8 @@ public class mainTeleOp extends NextFTCOpMode {
     public void onStartButtonPressed() {
 
         driverControlled = new PedroDriverControlled(
-                Gamepads.gamepad1().leftStickY().negate(),
-                Gamepads.gamepad1().leftStickX().negate(),
+                (() -> {return gamepad1.left_stick_y * -1 * speed;}),
+                (() -> {return gamepad1.left_stick_x * -1 * speed;}),
                 () -> {
                     if (headingLock) {
                         return headingPIDF.calculate(new KineticState(PedroComponent.follower().getHeading()));
@@ -131,6 +133,7 @@ public class mainTeleOp extends NextFTCOpMode {
                 true
         );
 
+        Shooter.INSTANCE.Init.schedule();
         Shooter.INSTANCE.closeGate.schedule();
         Shooter.INSTANCE.Off.schedule();
 

@@ -116,7 +116,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
     public Command autonomousRoutine() {
         return new SequentialGroup(
-                Shooter.INSTANCE.On.thenWait(8),
+                Shooter.INSTANCE.On.thenWait(6),
 
                 shootArtifacts(),
 
@@ -217,7 +217,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(19.129, 35.620),
 
-                                new Pose(60.328, 11.328)
+                                new Pose(56.600, 7.800)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -225,9 +225,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         startToIntake = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(60.328, 11.328),
+                                new Pose(56.600, 7.800),
 
-                                new Pose(14.867, 10.910)
+                                new Pose(9.908, 10.201)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
@@ -235,9 +235,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         farZoneScore = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(14.867, 10.910),
+                                new Pose(9.908, 10.201),
 
-                                new Pose(60.328, 11.328)
+                                new Pose(56.600, 7.800)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -245,9 +245,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         cornerIntake = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(60.328, 11.328),
+                                new Pose(56.600, 7.800),
 
-                                new Pose(15.195, 10.786)
+                                new Pose(11.122, 10.609)
                         )
                 ).setTangentHeadingInterpolation()
 
@@ -255,21 +255,21 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         openGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(15.195, 10.786),
+                                new Pose(11.122, 10.609),
 
-                                openGatePose
+                                new Pose(11.028, 64.725)
                         )
-                ).setLinearHeadingInterpolation(Math.toRadians(90), openGatePose.getHeading())
+                ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(145))
 
                 .build();
 
         scoreGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                openGatePose,
+                                new Pose(11.028, 64.725),
 
-                                new Pose(60.328, 11.328)
+                                new Pose(56.600, 7.800)
                         )
-                ).setLinearHeadingInterpolation(openGatePose.getHeading(), Math.toRadians(140))
+                ).setLinearHeadingInterpolation(Math.toRadians(145), Math.toRadians(140))
 
                 .build();
     }
