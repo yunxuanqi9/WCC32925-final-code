@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.autos;
 
-
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitGate;
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.TeleOpTest.waitShoot;
 import static dev.nextftc.extensions.pedro.PedroComponent.follower;
@@ -51,7 +50,6 @@ public class Auto21Ball extends NextFTCOpMode {
     private int pathState;
     private ElapsedTime autoTimer = new ElapsedTime();
 
-
     public PathChain goalTo1Shoot;
     public PathChain shoot1ToIntake1;
     public PathChain intake1To2Shoot;
@@ -74,15 +72,11 @@ public class Auto21Ball extends NextFTCOpMode {
         panelsTelemetry.debug("Status", "Initialized");
         panelsTelemetry.update(telemetry);
         pathState = 0;
-    }
 
-    // no this? 
-    @Override
-    public void onStartButtonPressed() {
+        // Schedule the routine here — NextFTCOpMode runs it when start is pressed
         autonomousRoutine().schedule();
     }
 
-   
     public Command shootArtifacts() {
         return new SequentialGroup(
                 new SequentialGroup(
@@ -98,33 +92,31 @@ public class Auto21Ball extends NextFTCOpMode {
         );
     }
 
-    
     public Command autonomousRoutine() {
         return new SequentialGroup(
 
-                // Turret on and flywheel spun up before first move
                 Turret.INSTANCE.enableTracking,
                 Shooter.INSTANCE.On,
 
-                // Shoot 1 = preloaded
+                // Shoot 1 — preloaded balls
                 new FollowPath(goalTo1Shoot),
                 shootArtifacts(),
 
-                // Intake row 1 -> Shoot 2
+                // Intake row 1 → Shoot 2
                 Intake.INSTANCE.On,
                 new FollowPath(shoot1ToIntake1),
                 Intake.INSTANCE.Off,
                 new FollowPath(intake1To2Shoot),
                 shootArtifacts(),
 
-                // Intake row 2 -> Shoot 3
+                // Intake row 2 → Shoot 3
                 Intake.INSTANCE.On,
                 new FollowPath(shoot2ToIntake2),
                 Intake.INSTANCE.Off,
                 new FollowPath(intake2To3Shoot),
                 shootArtifacts(),
 
-                // Gate intake 1 -> Shoot 4
+                // Gate intake 1 → Shoot 4
                 Intake.INSTANCE.On,
                 new FollowPath(shoot3ToGate),
                 new Delay(waitGate),
@@ -132,7 +124,7 @@ public class Auto21Ball extends NextFTCOpMode {
                 new FollowPath(gateTo4Shoot),
                 shootArtifacts(),
 
-                // Gate intake 2 -> Shoot 5
+                // Gate intake 2 → Shoot 5
                 Intake.INSTANCE.On,
                 new FollowPath(shoot4ToGate),
                 new Delay(waitGate),
@@ -140,7 +132,7 @@ public class Auto21Ball extends NextFTCOpMode {
                 new FollowPath(gateTo5Shoot),
                 shootArtifacts(),
 
-                // Gate intake 3 -> Shoot 6
+                // Gate intake 3 → Shoot 6
                 Intake.INSTANCE.On,
                 new FollowPath(shoot5ToGate),
                 new Delay(waitGate),
@@ -148,7 +140,7 @@ public class Auto21Ball extends NextFTCOpMode {
                 new FollowPath(gateTo6Shoot),
                 shootArtifacts(),
 
-                // Gate intake 4 -> Shoot 7
+                // Gate intake 4 → Shoot 7
                 Intake.INSTANCE.On,
                 new FollowPath(shoot6ToGate),
                 new Delay(waitGate),
@@ -169,10 +161,8 @@ public class Auto21Ball extends NextFTCOpMode {
         panelsTelemetry.update(telemetry);
     }
 
-   
     public void buildPaths() {
 
-        // 1
         goalTo1Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(18.226, 119.443),
@@ -181,7 +171,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(134))
                 .build();
 
-        // 2 
         shoot1ToIntake1 = follower().pathBuilder()
                 .addPath(new BezierCurve(
                         new Pose(46.748, 91.826),
@@ -192,7 +181,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setReversed()
                 .build();
 
-        // 3 
         intake1To2Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(24.661, 84.365),
@@ -201,7 +189,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(130))
                 .build();
 
-        // 4
         shoot2ToIntake2 = follower().pathBuilder()
                 .addPath(new BezierCurve(
                         new Pose(47.365, 83.635),
@@ -211,7 +198,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setTangentHeadingInterpolation()
                 .build();
 
-        // 5
         intake2To3Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(24.209, 59.478),
@@ -220,7 +206,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(130))
                 .build();
 
-        // 6 
         shoot3ToGate = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(46.504, 84.113),
@@ -229,7 +214,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setTangentHeadingInterpolation()
                 .build();
 
-        // 7 
         gateTo4Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(13.122, 61.991),
@@ -238,7 +222,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(130))
                 .build();
 
-        // 8
         shoot4ToGate = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(41.704, 90.339),
@@ -247,7 +230,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setTangentHeadingInterpolation()
                 .build();
 
-        // 9 
         gateTo5Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(13.452, 62.009),
@@ -256,7 +238,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(130))
                 .build();
 
-        // 10 
         shoot5ToGate = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(41.565, 89.826),
@@ -265,7 +246,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setTangentHeadingInterpolation()
                 .build();
 
-        // 11 
         gateTo6Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(13.235, 62.157),
@@ -274,7 +254,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setConstantHeadingInterpolation(Math.toRadians(130))
                 .build();
 
-        // 12
         shoot6ToGate = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(42.043, 90.191),
@@ -283,7 +262,6 @@ public class Auto21Ball extends NextFTCOpMode {
                 .setTangentHeadingInterpolation()
                 .build();
 
-        // 13 
         gateTo7Shoot = follower().pathBuilder()
                 .addPath(new BezierLine(
                         new Pose(13.357, 62.191),
