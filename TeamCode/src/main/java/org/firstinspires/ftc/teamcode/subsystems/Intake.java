@@ -55,33 +55,32 @@ public class Intake implements Subsystem {
 
     public Command On = new SetPower(intakeMotor,1);
 
+    public Command shootFar = new SetPower(intakeMotor,0.8);
+
+
     public Command slowFire = new SetPower(intakeMotor,0.7);
 
     public Command Off = new SetPower(intakeMotor, 0);
 
 
-    public Command checkBalls = new InstantCommand(() -> {
+
+    public Command intakeArtifacts =
+            new ParallelGroup(
+                    On
+            );
+
+    public void initialize(){
+        intakeMotor.getMotor().setCurrentAlert(5.5,CurrentUnit.AMPS);
+    }
+
+    @Override
+    public void periodic(){
         if(intakeMotor.getMotor().isOverCurrent()){
             RGB.setPosition(0.7);
         }
         else{
             RGB.setPosition(0.4);
         }
-    }).afterTime(0.02);
-
-
-    public Command intakeArtifacts =
-            new ParallelGroup(
-                    On,
-                    checkBalls  
-            );
-
-    public void initialize(){
-        intakeMotor.getMotor().setCurrentAlert(8,CurrentUnit.AMPS);
-    }
-
-    @Override
-    public void periodic(){
-        ActiveOpMode.telemetry().addData("Intake current",currReading);
+        ActiveOpMode.telemetry().addData("Intake current",intakeMotor.getMotor().getCurrent(CurrentUnit.AMPS));
     }
 }

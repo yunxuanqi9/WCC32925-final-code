@@ -32,11 +32,13 @@ public class Shooter implements Subsystem {
     public static double fixedSpeed;
 
     public static double setHood = 0; // CHANGE IN PANELS
-    public static double maxHoodPose = 0.85;
+    public static double maxHoodPose = 0.8;
 
     public static double kickerOn = 0.8;
-    public static double kickerOff = 0.35;
+    public static double kickerOff = 0.25;
     public static double kickerWait = 0.5;
+
+    private double distance;
 
 
     double PPR = 145.1; // 1150 motor
@@ -51,7 +53,7 @@ public class Shooter implements Subsystem {
 
     public static PIDCoefficients closeZonePIDCoefficients = new PIDCoefficients(0.007,0,0);
 
-    public static PIDCoefficients farPIDCoefficients = new PIDCoefficients(0.04,0,0.00007);
+    public static PIDCoefficients farPIDCoefficients = new PIDCoefficients(0.06,0,0.00007);
 
     public static BasicFeedforwardParameters flywheelFFCoefficients = new BasicFeedforwardParameters(0.00045,0,0.0004);
 
@@ -64,8 +66,11 @@ public class Shooter implements Subsystem {
     public static double highFlywheelVelo = 850;
     public static double currSpeed = 500;
 
-    public static double hoodOffset;
-    public static double shooterOffset;
+    public static double closeZoneHoodOffset = 0;
+    public static double closeZoneSpeedOffset = 0;
+
+    public static double farZoneHoodOffset = 0;
+    public static double farZoneSpeedOffset = 0;
 
     public boolean flywheelOn = false;
 
@@ -131,20 +136,22 @@ public class Shooter implements Subsystem {
 
     public Command disableVelo = new InstantCommand(() -> {
         veloLock = true;
-        shooterOffset = 0;
-        hoodOffset = 0;
+        closeZoneSpeedOffset = 0;
+        closeZoneHoodOffset = 0;
+        farZoneSpeedOffset = 0;
+        farZoneHoodOffset = 0;
         //RESETS!
     });
 
     public Command Init = new ParallelGroup(
             enableVelo,
             closeGate,
+            new SetPosition(Kicker,kickerOff),
             Off
     );
 
 
     //Tuning Commands
-
     public Command setSpeedHigh = new InstantCommand(() -> currSpeed += 50);
     public Command setSpeedLow = new InstantCommand(() -> currSpeed -= 50);
 
@@ -155,17 +162,44 @@ public class Shooter implements Subsystem {
 
     //Diagnostic commands
 
-    public Command increaseSpeedOffset = new InstantCommand(() -> shooterOffset += 50);
-    public Command decreaseSpeedOffset = new InstantCommand(() -> shooterOffset -= 50);
+    public Command increaseSpeedOffset = new InstantCommand(() -> {
+        if(distance > 120){
+            farZoneSpeedOffset += 50;
+        }
+        else{
+            closeZoneSpeedOffset += 50;
+        }
+    });
 
-    public Command increaseAngleOffset = new InstantCommand(() -> hoodOffset = hoodOffset+0.1);
-    public Command decreaseAngleOffset = new InstantCommand(() -> hoodOffset = hoodOffset-0.1);
+    public Command decreaseSpeedOffset = new InstantCommand(() -> {
+        if(distance > 120){
+            farZoneSpeedOffset -= 50;
+        }
+        else{
+            closeZoneSpeedOffset -= 50;
+        }
+    });
 
+    public Command increaseAngleOffset = new InstantCommand(() -> {
+        if(distance > 120){
+            farZoneHoodOffset += 0.1;
+        }
+        else{
+            closeZoneHoodOffset += 0.1;
+        }
+    });
+
+    public Command decreaseAngleOffset = new InstantCommand(() -> {
+        if(distance > 120){
+            farZoneHoodOffset -= 0.1;
+        }
+        else{
+            closeZoneHoodOffset -= 0.1;
+        }
+    });
 
     public final Command UnclogOn = new InstantCommand(() -> unclogging = true);
     public final Command UnclogOff = new InstantCommand(() -> unclogging = false);
-
-    //Fin
 
     @Override
     public void initialize(){
@@ -176,10 +210,10 @@ public class Shooter implements Subsystem {
         hoodlut = new InterpLUT()
         {{
             add(27, 0.2);
-            add(32, 0.55);
-            add(52, 0.75);
-            add(65, 0.55);
-            add( 78,0.7);
+            add(38, 0.5 );
+            add(60, 0.4);
+            add(72, 0.5);
+            add( 96,0.55);
             add(121, 0.45);
             add(134, 0.85);
 
@@ -188,13 +222,12 @@ public class Shooter implements Subsystem {
         velolut = new InterpLUT()
         {{
             add(27, 970);
-            add(32, 1050);
-            add(52, 1100);
-            add(65, 1100);
-            add(78, 1170);
+            add(32, 1170);
+            add(60, 1090);
+            add(72, 1120);
+            add(96, 1230);
             add(121, 1330);
             add(132, 1400);
-
         }};
 //generating final equation
         velolut.createLUT();
@@ -205,19 +238,26 @@ public class Shooter implements Subsystem {
     public void periodic() {
         //Kicker.setPosition(KickerOn);
 
-
         Pose robotPose = PedroComponent.follower().getPose();
 
-        double distance = robotPose.distanceFrom(mainConstants.goalPose);
+        distance = robotPose.distanceFrom(mainConstants.goalPose);
 
         if(!veloLock){
             currSpeed = velolut.get(distance);
             setHood  = hoodlut.get(distance);
         }
 
-        closeFlywheelController.setGoal(new KineticState(0,currSpeed + shooterOffset,0));
-        Hood.setPosition(Math.max(Math.min(maxHoodPose, setHood + hoodOffset),0)); // CLAMPING
+        if(distance < 120){
+            //CLOSE ZONE!
+            closeFlywheelController.setGoal(new KineticState(0,currSpeed + closeZoneSpeedOffset,0));
+            Hood.setPosition(Math.max(Math.min(maxHoodPose, setHood + closeZoneHoodOffset),0)); // CLAMPING
+        }
+        else{
+            //FAR ZONE!
+            closeFlywheelController.setGoal(new KineticState(0,currSpeed + farZoneSpeedOffset,0));
+            Hood.setPosition(Math.max(Math.min(maxHoodPose, setHood + farZoneHoodOffset),0)); // CLAMPING
 
+        }
 
         double power = 0;
         if (flywheelOn) {
@@ -237,7 +277,9 @@ public class Shooter implements Subsystem {
         ActiveOpMode.telemetry().addData("hood angle", setHood);
         ActiveOpMode.telemetry().addData("distance!", distance);
         ActiveOpMode.telemetry().addData("shooter lock?", veloLock);
-        ActiveOpMode.telemetry().addData("hoodOffset", hoodOffset);
-        ActiveOpMode.telemetry().addData("shooterOffset", shooterOffset);
+        ActiveOpMode.telemetry().addData("CloseHoodOffset", closeZoneHoodOffset);
+        ActiveOpMode.telemetry().addData("CloseSpeedOffset", closeZoneSpeedOffset);
+        ActiveOpMode.telemetry().addData("FarHoodOffset", closeZoneHoodOffset);
+        ActiveOpMode.telemetry().addData("FarSpeedOffset", closeZoneSpeedOffset);
     }
 }

@@ -47,9 +47,9 @@ public class mainTeleOp extends NextFTCOpMode {
             //new Pose(8.11,7.598,Math.toRadians(90));
             new Pose(72, 72, Math.toRadians(90));
 
-    public static double waitGate = 1;
+    public static double waitGate = 0.9;
     public static double waitShoot = 1.2;
-    public static double waitToKick = 0.4;
+    public static double waitToKick = 0.7;
 
     private static double goalOffsetX = 0;
     private static double goalOffsetY = 0;
@@ -113,8 +113,6 @@ public class mainTeleOp extends NextFTCOpMode {
                 .posPid(1, 0, 0.04)
                 .basicFF(0, 0, 0.025)
                 .build();
-
-        headingPIDF.setGoal(new KineticState(mainConstants.gateHeading));
     }
 
     @Override
@@ -159,14 +157,14 @@ public class mainTeleOp extends NextFTCOpMode {
                         new ParallelGroup(
                                 Shooter.INSTANCE.Off,
                                 Shooter.INSTANCE.openGate,
-                                Intake.INSTANCE.Unclog,
-                                Shooter.INSTANCE.UnclogOn
+                                Intake.INSTANCE.Unclog//,
+                                //Shooter.INSTANCE.UnclogOn
                         )
                 )
                 .whenBecomesFalse(
                         new ParallelGroup(
                                 Intake.INSTANCE.Off,
-                                Shooter.INSTANCE.UnclogOff,
+                                //Shooter.INSTANCE.UnclogOff,
                                 Shooter.INSTANCE.closeGate
                         )
                 );
@@ -179,14 +177,6 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(shootArtifacts()
                 );
 
-        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadUp()).whenBecomesTrue(() -> {
-                            PedroComponent.follower().setPose(new Pose(72, 72, Math.toRadians(90)));});
-        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadLeft())
-                .whenBecomesTrue(() -> PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90))));
-        Gamepads.gamepad1().ps().and(Gamepads.gamepad1().dpadRight()).whenBecomesTrue(() -> {
-                    //bottom right corner facing top
-                    PedroComponent.follower().setPose(new Pose(mainConstants.robotWidth / 2, mainConstants.robotCenterDistBack, Math.toRadians(90)).mirror());
-                });
         Gamepads.gamepad1().ps().and(Gamepads.gamepad1().cross()).whenBecomesTrue(() -> {
                             //bottom right corner facing top
                             if (mainConstants.redTeam) {
@@ -207,6 +197,11 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(Turret.INSTANCE.disableTracking)
                 .whenBecomesFalse(Turret.INSTANCE.enableTracking);
 
+        Gamepads.gamepad1().leftBumper()
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(Turret.INSTANCE.lockPos)
+                .whenBecomesFalse(Turret.INSTANCE.unlockPos);
+
         Gamepads.gamepad1().share()
                 .toggleOnBecomesTrue()
                 .whenBecomesTrue(Shooter.INSTANCE.disableVelo)
@@ -224,7 +219,6 @@ public class mainTeleOp extends NextFTCOpMode {
         Gamepads.gamepad1().dpadRight()
                 .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseAngleOffset);
 
-
         //GAMEPAD2
 
         Gamepads.gamepad2().dpadUp()
@@ -233,14 +227,53 @@ public class mainTeleOp extends NextFTCOpMode {
                 .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetY(-2));
         Gamepads.gamepad2().dpadRight()
                 .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetX(+2));
-        Gamepads.gamepad2().dpadRight()
+        Gamepads.gamepad2().dpadLeft()
                 .whenBecomesTrue(() -> mainConstants.increaseGoalOffsetX(-2));
+
+        Gamepads.gamepad2().triangle()
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.increaseSpeedOffset);
+
+        Gamepads.gamepad2().cross()
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseSpeedOffset);
+
+        Gamepads.gamepad2().circle()
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.increaseAngleOffset);
+
+        Gamepads.gamepad2().square()
+                .and((Gamepads.gamepad1().ps().not())).whenBecomesFalse(Shooter.INSTANCE.decreaseAngleOffset);
+
+        Gamepads.gamepad2().rightBumper()
+                .toggleOnBecomesTrue()
+                .whenBecomesTrue(() -> mainConstants.setAlliance(true))
+                .whenBecomesFalse(() -> mainConstants.setAlliance(false));
+
+
+        Gamepads.gamepad2().options()
+                .whenBecomesTrue(
+                        new ParallelGroup(
+                                Shooter.INSTANCE.Off,
+                                Shooter.INSTANCE.openGate,
+                                Intake.INSTANCE.Unclog,
+                                Shooter.INSTANCE.UnclogOn
+                        )
+                )
+                .whenBecomesFalse(
+                        new ParallelGroup(
+                                Intake.INSTANCE.Off,
+                                Shooter.INSTANCE.UnclogOff,
+                                Shooter.INSTANCE.closeGate
+                        )
+                );
+
 
         driverControlled.schedule();
     }
 
     @Override
     public void onUpdate() {
+
+        headingPIDF.setGoal(new KineticState(mainConstants.gateHeading));
+
         telemetry.update();
         telemetry.addData("x", PedroComponent.follower().getPose().getX());
         telemetry.addData("Y", PedroComponent.follower().getPose().getY());

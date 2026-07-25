@@ -41,6 +41,8 @@ public class Turret implements Subsystem {
 
     public static boolean SOTM = false;
 
+    public static boolean lockPosition = false;
+
     private InterpLUT flighttimelut;
 
     //public static double MAX_TICK_VALUE = 380;
@@ -63,6 +65,11 @@ public class Turret implements Subsystem {
         turretLock = false;
     });
     public Command disableTracking = new InstantCommand(() -> turretLock = true);
+
+    public Command lockPos = new InstantCommand(() -> {
+        lockPosition = true;
+    });
+    public Command unlockPos = new InstantCommand(() -> lockPosition = false);
 
     public Command setTurretPosition(double pos){
         return new InstantCommand(() -> turretMotor.setCurrentPosition(pos));
@@ -113,6 +120,7 @@ public class Turret implements Subsystem {
 
     public void initialize(){
         turretLock = true;
+        lockPosition = false;
 
         if(mainConstants.autoEndX == 0 && mainConstants.autoEndY == 0 && mainConstants.autoEndHeading == 0){
             turretMotor.zero();
@@ -137,12 +145,18 @@ public class Turret implements Subsystem {
             targetPos = calcSOTMTurretPosition(mainConstants.goalPose);
         }
         else{
-            targetPos = calculateTurretPosition(mainConstants.goalPose.plus(new Pose(mainConstants.goalOffsetX, mainConstants.goalOffsetY)));
+            targetPos = calculateTurretPosition(new Pose(mainConstants.goalOffsetX + mainConstants.goalPose.getX(), mainConstants.goalOffsetY + + mainConstants.goalPose.getY()));
         }
 
         //SOTM?
 
-        controller.setGoal(new KineticState(targetPos,0,0));
+        if(lockPosition){
+            controller.setGoal(new KineticState(0));
+        }
+        else{
+            controller.setGoal(new KineticState(targetPos,0,0));
+        }
+
         double power;
         if(turretLock){
             power = 0;
@@ -152,14 +166,14 @@ public class Turret implements Subsystem {
         }
 
         turretMotor.setPower(power);
-        ActiveOpMode.telemetry().addData("current motor value",turretMotor.getCurrentPosition());
-        ActiveOpMode.telemetry().addData("current VELO",turretMotor.getVelocity());
-        ActiveOpMode.telemetry().addData("Turret locked?",turretLock);
+        //ActiveOpMode.telemetry().addData("current motor value",turretMotor.getCurrentPosition());
+        //ActiveOpMode.telemetry().addData("current VELO",turretMotor.getVelocity());
+        //ActiveOpMode.telemetry().addData("Turret locked?",turretLock);
         ActiveOpMode.telemetry().addData("turret degrees",turretDegrees);
-        ActiveOpMode.telemetry().addData("goal location",goalLocation);
+        //ActiveOpMode.telemetry().addData("goal location",goalLocation);
 
-        ActiveOpMode.telemetry().addData("Goal pose X",mainConstants.goalPose.getX());
-        ActiveOpMode.telemetry().addData("Goal pose Y",mainConstants.goalPose.getY());
+        ActiveOpMode.telemetry().addData("Goal pose X",new Pose(mainConstants.goalOffsetX + mainConstants.goalPose.getX(), mainConstants.goalOffsetY + + mainConstants.goalPose.getY()).getX());
+        ActiveOpMode.telemetry().addData("Goal pose Y",new Pose(mainConstants.goalOffsetX + mainConstants.goalPose.getX(), mainConstants.goalOffsetY + + mainConstants.goalPose.getY()).getY());
 
     }
 

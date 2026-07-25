@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.autos.paths;
+package org.firstinspires.ftc.teamcode.autos.oldIgnore;
 
 
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
@@ -18,13 +18,11 @@ import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
@@ -154,9 +152,7 @@ public abstract class CornerIntake21 extends NextFTCOpMode {
 
                 Intake.INSTANCE.On,
                 new FollowPath(cornerIntake),
-                Intake.INSTANCE.Off,
-                new FollowPath(farZoneScore),
-                shootArtifacts()
+                Intake.INSTANCE.Off
         );
     }
 
@@ -167,7 +163,7 @@ public abstract class CornerIntake21 extends NextFTCOpMode {
                         Shooter.INSTANCE.closeGate
                 ),
                 new SequentialGroup(
-                        Intake.INSTANCE.On.thenWait(waitToKick),
+                        Intake.INSTANCE.shootFar.thenWait(waitToKick),
                         Shooter.INSTANCE.Kick,
                         Intake.INSTANCE.Off
                 )

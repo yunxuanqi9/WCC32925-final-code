@@ -39,7 +39,8 @@ import dev.nextftc.ftc.NextFTCOpMode;
 @Configurable // Panels
 public abstract class Optimised15Ball extends NextFTCOpMode {
     protected final boolean redTeam;
-    public Optimised15Ball(Boolean redTeam) {
+    protected final boolean isSolo;
+    public Optimised15Ball(Boolean redTeam, Boolean isSolo) {
         addComponents(
                 new SubsystemComponent(
                         Turret.INSTANCE,
@@ -49,6 +50,7 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
                 new PedroComponent(Constants::createFollower)
         );
         this.redTeam = redTeam;
+        this.isSolo = isSolo;
         mainConstants.redTeam = redTeam;
     }
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
@@ -68,6 +70,7 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         if (redTeam) {
             startingPose = startingPose.mirror(); // MIRRORS POSE!!!!
+            openGatePose = openGatePose.mirror();
             scoringPose = scoringPose.mirror();
             buildRedPaths();
 
@@ -85,10 +88,15 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
     public void onStartButtonPressed() {
         Shooter.INSTANCE.Init.schedule();
         Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
-        autonomousRoutine().run();
+        if(isSolo){
+            SoloRoutine().run();
+        }
+        else{
+            teamRoutine().run();
+        }
     }
 
-    public Command autonomousRoutine() {
+    public Command teamRoutine() {
         return new SequentialGroup(
                 Shooter.INSTANCE.On.thenWait(spinUp),
                 //MIDDLE SPIKE MUST GO FIRST!
@@ -105,19 +113,16 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
                 //CAN REPEAT AS MANY AS YOU'D LIKE.
                 Intake.INSTANCE.On,
                 new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
-                new FollowPath(awayGate),
                 new FollowPath(gateScore),
                 shootArtifacts(),
 
                 Intake.INSTANCE.On,
                 new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
-                new FollowPath(awayGate),
                 new FollowPath(gateScore),
                 shootArtifacts(),
 
                 Intake.INSTANCE.On,
                 new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
-                new FollowPath(awayGate),
                 new FollowPath(gateScore),
                 shootArtifacts(),
 
@@ -125,8 +130,49 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
                 Intake.INSTANCE.On,
                 new FollowPath(topSpike),
                 Intake.INSTANCE.Off
+
         );
     }
+
+
+    public Command SoloRoutine() {
+        return new SequentialGroup(
+                Shooter.INSTANCE.On.thenWait(0.6),
+                //MIDDLE SPIKE MUST GO FIRST!
+
+                new FollowPath(shootPreload),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(middleSpike),
+                new FollowPath(scoreMiddle),
+                Intake.INSTANCE.Off,
+                shootArtifacts(),
+
+                //CAN REPEAT AS MANY AS YOU'D LIKE.
+                Intake.INSTANCE.On,
+                new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
+                Intake.INSTANCE.Off,
+
+                new FollowPath(gateScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(openGate).thenWait(mainConstants.waitGateIntake),
+                Intake.INSTANCE.Off,
+
+                new FollowPath(gateScore),
+                shootArtifacts(),
+                //TOP SPIKE MUST GO AT THE END!
+                Intake.INSTANCE.On,
+                new FollowPath(topSpike),
+                new FollowPath(scoreTop),
+                shootArtifacts(),
+                new FollowPath(Leave)
+
+        );
+    }
+
 
     @Override
     public void onUpdate() {
@@ -149,13 +195,13 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
         panelsTelemetry.debug("MainconstantsRed?", mainConstants.redTeam);
         panelsTelemetry.debug("this.Red?", this.redTeam);
         panelsTelemetry.update(telemetry);
-
         drawOnlyCurrent();
     }
 
     @Override
     public void onStop() {
         mainConstants.autoEndPose = follower().getPose();
+        Shooter.INSTANCE.Off.schedule();
         ActiveOpMode.telemetry().addData("End pose X", mainConstants.autoEndPose.getX());
         ActiveOpMode.telemetry().addData("End pose Y", mainConstants.autoEndPose.getY());
     }
@@ -175,21 +221,20 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
     }
 
     public PathChain shootPreload;
-    public PathChain goToMiddle;
     public PathChain middleSpike;
     public PathChain scoreMiddle;
     public PathChain openGate;
     public PathChain gateScore;
-    public PathChain awayGate;
     public PathChain topSpike;
     public PathChain scoreTop;
+    public PathChain Leave;
 
-    public void buildBluePaths() {
+    public void buildBluePaths(){
         shootPreload = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(19.015, 119.663),
 
-                                new Pose(61.441, 78.793)
+                                new Pose(58.784, 81.096)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(144), Math.toRadians(230))
 
@@ -197,9 +242,9 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         middleSpike = follower().pathBuilder().addPath(
                         new BezierCurve(
-                                new Pose(61.441, 78.793),
-                                new Pose(51.573, 59.935),
-                                new Pose(4.634, 58.252)
+                                new Pose(58.784, 81.096),
+                                new Pose(49.979, 59.404),
+                                new Pose(20.900, 59.867)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(230), Math.toRadians(180))
 
@@ -207,9 +252,9 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         scoreMiddle = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(4.634, 58.252),
+                                new Pose(20.900, 59.867),
 
-                                new Pose(54.827, 81.742)
+                                new Pose(54.376, 83.779)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -217,39 +262,29 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         openGate = follower().pathBuilder().addPath(
                         new BezierCurve(
-                                new Pose(54.827, 81.742),
-                                new Pose(38.435, 56.148),
-                                new Pose(11.028, 60.623)
+                                new Pose(54.376, 83.779),
+                                new Pose(30.111, 52.251),
+                                new Pose(13.153, 59.914)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(210), Math.toRadians(143))
 
                 .build();
 
-        awayGate = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(11.028, 60.623),
-
-                                new Pose(12.225, 58.321)
-                        )
-                ).setConstantHeadingInterpolation(Math.toRadians(143))
-                .setNoDeceleration()
-                .build();
-
         gateScore = follower().pathBuilder().addPath(
-                        new BezierCurve(
-                                new Pose(12.225, 58.321),
-                                new Pose(19.650, 40.445),
-                                new Pose(54.827, 81.742)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(143), Math.toRadians(210))
+                        new BezierLine(
+                                new Pose(13.153, 59.914),
 
+                                new Pose(54.199, 83.601)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
                 .build();
 
         topSpike = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(54.827, 81.742),
+                                new Pose(54.199, 83.601),
 
-                                new Pose(15.578, 85.040)
+                                new Pose(18.412, 84.154)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
@@ -257,21 +292,31 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         scoreTop = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(15.578, 85.040),
+                                new Pose(18.412, 84.154),
 
-                                new Pose(36.229, 101.403)
+                                new Pose(53.233, 86.879)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
                 .build();
+
+        Leave = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(53.233, 86.879),
+
+                                new Pose(29.402, 60.753)
+                        )
+                ).setTangentHeadingInterpolation()
+
+                .build();
     }
 
     public void buildRedPaths(){
+        //DO NOT FUCKING TOUCH!
         shootPreload = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(124.985, 119.663),
-
-                                new Pose(82.559, 78.793)
+                                new Pose(85.216, 81.096)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(36), Math.toRadians(-50))
 
@@ -279,9 +324,9 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         middleSpike = follower().pathBuilder().addPath(
                         new BezierCurve(
-                                new Pose(82.559, 78.793),
-                                new Pose(92.427, 59.935),
-                                new Pose(139.366, 58.252)
+                                new Pose(85.216, 81.096),
+                                new Pose(94.021, 59.404),
+                                new Pose(123.100, 59.867)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(-50), Math.toRadians(0))
 
@@ -289,9 +334,9 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         scoreMiddle = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(139.366, 58.252),
+                                new Pose(123.100, 59.867),
 
-                                new Pose(89.173, 81.742)
+                                new Pose(89.624, 83.779)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -299,39 +344,29 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         openGate = follower().pathBuilder().addPath(
                         new BezierCurve(
-                                new Pose(89.173, 81.742),
-                                new Pose(105.565, 56.148),
-                                new Pose(132.972, 60.623)
+                                new Pose(89.624, 83.779),
+                                new Pose(119.911, 46.937),
+                                new Pose(134.212, 61.154)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(-30), Math.toRadians(37))
 
                 .build();
 
-        awayGate = follower().pathBuilder().addPath(
-                        new BezierLine(
-                                new Pose(132.972, 60.623),
-
-                                new Pose(131.421, 57.435)
-                        )
-                ).setConstantHeadingInterpolation(Math.toRadians(37))
-                .setNoDeceleration()
-                .build();
-
         gateScore = follower().pathBuilder().addPath(
-                        new BezierCurve(
-                                new Pose(131.421, 57.435),
-                                new Pose(124.350, 40.445),
-                                new Pose(89.173, 81.742)
-                        )
-                ).setLinearHeadingInterpolation(Math.toRadians(37), Math.toRadians(-30))
+                        new BezierLine(
+                                new Pose(134.212, 61.154),
 
+                                new Pose(89.801, 83.601)
+                        )
+                ).setTangentHeadingInterpolation()
+                .setReversed()
                 .build();
 
         topSpike = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(89.173, 81.742),
+                                new Pose(89.801, 83.601),
 
-                                new Pose(128.422, 85.040)
+                                new Pose(125.588, 84.154)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
 
@@ -339,23 +374,32 @@ public abstract class Optimised15Ball extends NextFTCOpMode {
 
         scoreTop = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(128.422, 85.040),
+                                new Pose(125.588, 84.154),
 
-                                new Pose(107.771, 101.403)
+                                new Pose(90.767, 86.879)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
                 .build();
-    }
 
-    public static void drawOnlyCurrent() {
-        try {
+        Leave = follower().pathBuilder().addPath(
+                        new BezierLine(
+                                new Pose(90.767, 86.879),
+
+                                new Pose(114.598, 60.753)
+                        )
+                ).setTangentHeadingInterpolation()
+
+                .build();
+}
+
+        public static void drawOnlyCurrent(){
+        try{
             Drawing.drawRobot(follower().getPose());
             Drawing.sendPacket();
-        } catch (Exception e) {
-            throw new RuntimeException("Drawing failed " + e);
+        } catch (Exception e){
+            throw new RuntimeException("Drawing failed" + e);
         }
-
     }
 }
 

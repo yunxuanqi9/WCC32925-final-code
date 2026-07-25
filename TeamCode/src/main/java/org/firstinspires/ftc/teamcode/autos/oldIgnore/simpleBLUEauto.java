@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 
-@Autonomous(name = "auto")
+@Autonomous(name = "LEAVE!")
 public class simpleBLUEauto extends LinearOpMode {
 
     private DcMotor frontLeftMotor;

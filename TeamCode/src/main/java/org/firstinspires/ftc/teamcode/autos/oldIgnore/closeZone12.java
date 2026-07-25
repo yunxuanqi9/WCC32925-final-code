@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.autos.paths;
+package org.firstinspires.ftc.teamcode.autos.oldIgnore;
 
 
 import static org.firstinspires.ftc.teamcode.nextFTCTeleOps.mainTeleOp.waitGate;
@@ -25,9 +25,7 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
-import dev.nextftc.core.commands.groups.ParallelRaceGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.commands.utility.InstantCommand;
 import dev.nextftc.core.components.SubsystemComponent;
@@ -37,7 +35,7 @@ import dev.nextftc.ftc.ActiveOpMode;
 import dev.nextftc.ftc.NextFTCOpMode;
 
 
-@Autonomous(name = "Pedro Pathing 15 Ball Optimised", group = "Autonomous")
+@Autonomous(name = "Pedro Pathing 12 Ball Optimised", group = "Autonomous")
 @Configurable // Panels
 public abstract class closeZone12 extends NextFTCOpMode {
 

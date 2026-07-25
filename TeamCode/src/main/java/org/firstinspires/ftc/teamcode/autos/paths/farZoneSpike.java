@@ -11,6 +11,7 @@ import com.bylazar.telemetry.TelemetryManager;
 import com.bylazar.telemetry.PanelsTelemetry;
 
 
+import org.firstinspires.ftc.teamcode.robotConstants.Drawing;
 import org.firstinspires.ftc.teamcode.robotConstants.mainConstants;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
 import org.firstinspires.ftc.teamcode.subsystems.Shooter;
@@ -18,13 +19,11 @@ import org.firstinspires.ftc.teamcode.subsystems.Turret;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 
-import com.pedropathing.geometry.BezierCurve;
 import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.geometry.Pose;
 
 import dev.nextftc.core.commands.Command;
-import dev.nextftc.core.commands.delays.Delay;
 import dev.nextftc.core.commands.groups.ParallelGroup;
 import dev.nextftc.core.commands.groups.SequentialGroup;
 import dev.nextftc.core.components.SubsystemComponent;
@@ -39,8 +38,9 @@ import dev.nextftc.ftc.NextFTCOpMode;
 public abstract class farZoneSpike extends NextFTCOpMode {
 
     protected final boolean redTeam;
+    protected final boolean gateOrNot;
 
-    public farZoneSpike(Boolean redTeam) {
+    public farZoneSpike(Boolean redTeam, Boolean gateOrNot) {
         addComponents(
                 new SubsystemComponent(
                         Turret.INSTANCE,
@@ -50,12 +50,13 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                 new PedroComponent(Constants::createFollower)
         );
         this.redTeam = redTeam;
+        this.gateOrNot = gateOrNot;
         mainConstants.redTeam = redTeam;
     }
 
     private TelemetryManager panelsTelemetry; // Panels Telemetry instance
 
-    private Pose startingPose = new Pose(56.597593454195426, 0, Math.toRadians(90));
+    private Pose startingPose = new Pose(56.597593454195426, 7.8, Math.toRadians(90));
     private Pose openGatePose = mainConstants.gateIntake;
 
     @Override
@@ -81,7 +82,12 @@ public abstract class farZoneSpike extends NextFTCOpMode {
     public void onStartButtonPressed(){
         Shooter.INSTANCE.Init.schedule();
         Turret.INSTANCE.enableTracking.afterTime(0.01).schedule();
-        autonomousRoutine().run();
+        if(gateOrNot){
+            gateRoutine().run();
+        }
+        else{
+            noGateRoutine().run();
+        }
     }
 
     @Override
@@ -105,6 +111,8 @@ public abstract class farZoneSpike extends NextFTCOpMode {
         panelsTelemetry.debug("MainconstantsRed?", mainConstants.redTeam);
         panelsTelemetry.debug("this.Red?", this.redTeam);
         panelsTelemetry.update(telemetry);
+
+        drawOnlyCurrent();
     }
 
     @Override
@@ -114,8 +122,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
         ActiveOpMode.telemetry().addData("End pose Y",mainConstants.autoEndPose.getY());
     }
 
-    public Command autonomousRoutine() {
+    public Command noGateRoutine() {
         return new SequentialGroup(
+                Shooter.INSTANCE.Off,
                 Shooter.INSTANCE.On.thenWait(6),
 
                 shootArtifacts(),
@@ -123,11 +132,50 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
                 Intake.INSTANCE.On,
                 new FollowPath(bottomSpike),
-                new FollowPath(Path8),
+                new FollowPath(goToBottom),
                 Intake.INSTANCE.Off,
                 new FollowPath(scoreBottom),
                 shootArtifacts(),
 
+
+                Intake.INSTANCE.On,
+                new FollowPath(startToIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(farZoneScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(cornerIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(farZoneScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(cornerIntake),
+                Intake.INSTANCE.Off,
+                new FollowPath(farZoneScore),
+                shootArtifacts(),
+
+                Intake.INSTANCE.On,
+                new FollowPath(cornerIntake),
+                Intake.INSTANCE.Off
+        );
+    }
+
+    public Command gateRoutine() {
+        return new SequentialGroup(
+                Shooter.INSTANCE.Off,
+                Shooter.INSTANCE.On.thenWait(6),
+
+                shootArtifacts(),
+
+
+                Intake.INSTANCE.On,
+                new FollowPath(goToBottom),
+                new FollowPath(bottomSpike),
+                Intake.INSTANCE.Off,
+                new FollowPath(scoreBottom),
+                shootArtifacts(),
 
                 Intake.INSTANCE.On,
                 new FollowPath(startToIntake),
@@ -157,15 +205,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
                 Intake.INSTANCE.On,
                 new FollowPath(cornerIntake),
-                Intake.INSTANCE.Off,
-                new FollowPath(farZoneScore),
-                shootArtifacts(),
-
-                Intake.INSTANCE.On,
-                new FollowPath(cornerIntake),
-                Intake.INSTANCE.Off,
-                new FollowPath(farZoneScore),
-                shootArtifacts()
+                Intake.INSTANCE.Off
         );
     }
     public Command shootArtifacts(){
@@ -182,9 +222,8 @@ public abstract class farZoneSpike extends NextFTCOpMode {
         );
     }
 
-
+    public PathChain goToBottom;
     public PathChain bottomSpike;
-    public PathChain Path8;
     public PathChain scoreBottom;
     public PathChain startToIntake;
     public PathChain farZoneScore;
@@ -193,7 +232,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
     public PathChain scoreGate;
 
     public void buildBluePaths() {
-        bottomSpike = follower().pathBuilder().addPath(
+        goToBottom = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(56.598, 7.598),
 
@@ -203,7 +242,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
                 .build();
 
-        Path8 = follower().pathBuilder().addPath(
+        bottomSpike = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(41.173, 35.373),
 
@@ -217,7 +256,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(19.129, 35.620),
 
-                                new Pose(56.600, 7.800)
+                                new Pose(60.328, 11.328)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -225,9 +264,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         startToIntake = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(56.600, 7.800),
+                                new Pose(60.328, 11.328),
 
-                                new Pose(9.908, 10.201)
+                                new Pose(11.679, 11.087)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(180), Math.toRadians(180))
 
@@ -235,9 +274,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         farZoneScore = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(9.908, 10.201),
+                                new Pose(11.679, 11.087),
 
-                                new Pose(56.600, 7.800)
+                                new Pose(60.328, 11.328)
                         )
                 ).setTangentHeadingInterpolation()
                 .setReversed()
@@ -245,9 +284,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         cornerIntake = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(56.600, 7.800),
+                                new Pose(60.328, 11.328),
 
-                                new Pose(11.122, 10.609)
+                                new Pose(9.705, 10.786)
                         )
                 ).setTangentHeadingInterpolation()
 
@@ -255,9 +294,9 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         openGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(11.122, 10.609),
+                                new Pose(9.705, 10.786),
 
-                                new Pose(11.028, 64.725)
+                                new Pose(11.028, 64.720)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(90), Math.toRadians(145))
 
@@ -265,18 +304,17 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         scoreGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(11.028, 64.725),
+                                new Pose(11.028, 64.720),
 
-                                new Pose(56.600, 7.800)
+                                new Pose(60.328, 11.328)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(145), Math.toRadians(140))
 
                 .build();
     }
-
-
+    
     public void buildRedPaths(){
-        bottomSpike = follower().pathBuilder().addPath(
+        goToBottom = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(87.402, 7.598),
 
@@ -286,7 +324,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
                 .build();
 
-        Path8 = follower().pathBuilder().addPath(
+        bottomSpike = follower().pathBuilder().addPath(
                         new BezierLine(
                                 new Pose(102.827, 35.373),
 
@@ -310,7 +348,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(83.672, 11.328),
 
-                                new Pose(129.133, 10.910)
+                                new Pose(132.321, 11.087)
                         )
                 ).setLinearHeadingInterpolation(Math.toRadians(0), Math.toRadians(0))
 
@@ -318,7 +356,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         farZoneScore = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(129.133, 10.910),
+                                new Pose(132.321, 11.087),
 
                                 new Pose(83.672, 11.328)
                         )
@@ -330,7 +368,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                         new BezierLine(
                                 new Pose(83.672, 11.328),
 
-                                new Pose(128.805, 10.786)
+                                new Pose(134.295, 10.786)
                         )
                 ).setTangentHeadingInterpolation()
 
@@ -338,7 +376,7 @@ public abstract class farZoneSpike extends NextFTCOpMode {
 
         openGate = follower().pathBuilder().addPath(
                         new BezierLine(
-                                new Pose(128.805, 10.786),
+                                new Pose(134.295, 10.786),
 
                                 new Pose(132.972, 64.720)
                         )
@@ -355,6 +393,15 @@ public abstract class farZoneSpike extends NextFTCOpMode {
                 ).setLinearHeadingInterpolation(Math.toRadians(35), Math.toRadians(40))
 
                 .build();
+    }
+
+    public static void drawOnlyCurrent(){
+        try{
+            Drawing.drawRobot(follower().getPose());
+            Drawing.sendPacket();
+        } catch (Exception e){
+            throw new RuntimeException("Drawing failed" + e);
+        }
     }
 }
 
